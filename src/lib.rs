@@ -15,23 +15,32 @@ pub struct Cli {
 }
 
 pub fn find_matches(
-    reader: impl BufRead,
+    mut reader: impl BufRead,
     cli: &Cli,
     mut writer: impl Write,
 ) -> std::result::Result<(), anyhow::Error> {
-    let lines = reader.lines();
-    for (_num, line) in lines.enumerate() {
-        match line {
-            Ok(line) => {
-                if line.contains(&cli.pattern) {
-                    writeln!(writer, "{}", line)?;
-                }
+    let mut buf = String::new();
+    loop {
+        match reader.read_line(&mut buf) {
+            // Stream has reached EOF
+            Ok(0) => {
+                buf.clear();
+                break;
             }
-            // Print extra info if `verbose` is provided
+            // Actual pattern matching
+            Ok(_) => {
+                if buf.contains(&cli.pattern) {
+                    writeln!(writer, "{}", buf.trim_end())?;
+                }
+                buf.clear();
+            }
+            // Print extra info such as invalid UTF-8 lines
             Err(e) => {
                 if cli.verbose {
                     writeln!(writer, "warn: {}", e)?;
                 }
+                buf.clear();
+                continue;
             }
         }
     }
