@@ -7,11 +7,11 @@ grrs is a simple hobby project that mainly follows the [cli book](https://rust-c
 This project extends the basic example from the cli book by:
 
 - Reducing the number of allocations by using IO buffer ([read_line](https://doc.rust-lang.org/std/io/trait.BufRead.html#method.read_line) API)
-- Verbose option for depicting failed reads
+- Adding verbose option for depicting failed reads
 
 ## Options 
 
-```bash
+```
 USAGE:
     grrs [FLAGS] <PATTERN> <PATH>
 
@@ -32,7 +32,7 @@ on your machine.
 
 To build this project:
 
-```bash
+```
 $ git clone https://github.com/streof/grrs
 $ cd grrs
 $ cargo build --release
