@@ -22,9 +22,8 @@ pub fn find_matches(
     let mut buf = String::new();
     loop {
         match reader.read_line(&mut buf) {
-            // Stream has reached EOF
+            // Stream has reached EOF when 0 bytes are read
             Ok(0) => {
-                buf.clear();
                 break;
             }
             // Actual pattern matching
