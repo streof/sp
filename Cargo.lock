@@ -61,6 +61,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
+name = "bstr"
+version = "0.2.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2889e6d50f394968c8bf4240dc3f2a7eb4680844d27308f798229ac9d4725f41"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "cfg-if"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -127,10 +136,11 @@ dependencies = [
 
 [[package]]
 name = "grrs"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "assert_cmd",
+ "bstr",
  "predicates",
  "structopt",
  "tempfile",
