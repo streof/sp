@@ -13,12 +13,11 @@ This project extends the basic example from the cli book by:
 
 ```
 USAGE:
-    grrs [FLAGS] <PATTERN> <PATH>
+    grrs <PATTERN> <PATH>
 
 FLAGS:
     -h, --help       Prints help information
     -V, --version    Prints version information
-    -v, --verbose    Prints any warning or error messages
 
 ARGS:
     <PATTERN>    A pattern used for matching a sub-slice
@@ -44,6 +43,6 @@ grrs 0.1.0
 
 grrs includes a few unit and integration test. Run them as follows
 
-```bash
+```
 $ cargo test
 ```

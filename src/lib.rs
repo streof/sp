@@ -1,5 +1,7 @@
+use bstr::{io::BufReadExt, ByteSlice};
 use std::io::{BufRead, Write};
 use std::path::PathBuf;
+use std::str;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -9,40 +11,25 @@ pub struct Cli {
 
     #[structopt(name = "PATH", parse(from_os_str), help = "A file to search")]
     pub path: PathBuf,
-
-    #[structopt(short, long, help = "Prints any warning or error messages")]
-    verbose: bool,
 }
 
 pub fn find_matches(
-    mut reader: impl BufRead,
+    reader: impl BufRead,
     cli: &Cli,
     mut writer: impl Write,
 ) -> std::result::Result<(), anyhow::Error> {
-    let mut buf = String::new();
-    loop {
-        match reader.read_line(&mut buf) {
-            // Stream has reached EOF when 0 bytes are read
-            Ok(0) => {
-                break;
-            }
-            // Actual pattern matching
-            Ok(_) => {
-                if buf.contains(&cli.pattern) {
-                    writeln!(writer, "{}", buf.trim_end())?;
-                }
-                buf.clear();
-            }
-            // Print extra info such as invalid UTF-8 lines
-            Err(e) => {
-                if cli.verbose {
-                    writeln!(writer, "warn: {}", e)?;
-                }
-                buf.clear();
-                continue;
-            }
+    reader.for_byte_line_with_terminator(|line| {
+        if line.contains_str(&cli.pattern) {
+            writeln!(
+                writer,
+                "{}",
+                str::from_utf8(&line)
+                    .expect("Found invalid UTF-8")
+                    .trim_end()
+            )?;
         }
-    }
+        Ok(true)
+    })?;
 
     // Return () on success
     Ok(())
@@ -56,7 +43,6 @@ fn find_a_match() {
     let cli = Cli {
         path: PathBuf::from_str(file).unwrap(),
         pattern: "lorem".to_owned(),
-        verbose: false,
     };
 
     let reader = &std::fs::read(file).unwrap()[..];
