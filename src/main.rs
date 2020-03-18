@@ -1,11 +1,13 @@
 use anyhow::{Context, Result};
+use grrs::cli::Cli;
+use grrs::matcher::find_matches;
 use std::fs::File;
 use std::io::{self, BufReader};
 use structopt::StructOpt;
 
 fn main() -> Result<(), anyhow::Error> {
     // Parse arguments
-    let args = grrs::Cli::from_args();
+    let args = Cli::from_args();
 
     // Read file into buffer
     let f =
@@ -17,5 +19,5 @@ fn main() -> Result<(), anyhow::Error> {
     let handle = io::BufWriter::new(stdout.lock());
 
     // Read and match lines
-    grrs::find_matches(reader, &args, handle)
+    find_matches(reader, &args, handle)
 }
