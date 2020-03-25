@@ -30,14 +30,14 @@ impl Cli {
     pub fn show_matches(
         &mut self,
         mut reader: impl BufRead,
-        writer: impl Write,
+        mut writer: impl Write,
     ) -> std::result::Result<(), anyhow::Error> {
         let mut matcher = Matcher {
             reader: &mut reader,
             pattern: &self.pattern,
         };
         let matches = matcher.get_matches();
-        print_matches(writer, matches)?;
+        print_matches(&mut writer, matches)?;
 
         // Return () on success
         Ok(())
