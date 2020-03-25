@@ -30,7 +30,8 @@ mod tests {
 
     const LINE: &str = "He started\nmade a run\n& stopped";
     const LINE_BIN: &str = "He started\nmad\x00e a run\n& stopped";
-    const LINE_BIN2: &str = "He started\nmade a r\x00un\n& stopped";
+    const LINE_BIN2: &str = "He started\r\nmade a r\x00un\n& stopped";
+    const LINE_BIN3: &str = "He started\r\nmade a r\x00un\r\n& stopped";
 
     #[test]
     fn find_no_match() {
@@ -92,5 +93,21 @@ mod tests {
 
         assert_eq!(matches.as_ref().unwrap().len(), 1);
         assert_eq!(matches.as_ref().unwrap()[0], &b"made a r\x00un\n"[..]);
+    }
+
+    #[test]
+    fn search_binary_text3() {
+        let mut line = Cursor::new(LINE_BIN3.as_bytes());
+        let pattern = &"r\x00un".to_owned();
+
+        let mut matcher = Matcher {
+            reader: &mut line,
+            pattern,
+        };
+
+        let matches = matcher.get_matches();
+
+        assert_eq!(matches.as_ref().unwrap().len(), 1);
+        assert_eq!(matches.as_ref().unwrap()[0], &b"made a r\x00un\r\n"[..]);
     }
 }
