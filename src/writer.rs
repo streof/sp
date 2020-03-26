@@ -17,7 +17,7 @@ impl<W: Write> Writer<W> {
         Ok(())
     }
 
-    pub fn print_lines_iter(&mut self, lines: &[BString]) -> CliResult {
+    fn print_lines_iter(&mut self, lines: &[BString]) -> CliResult {
         for line in lines.iter() {
             writeln!(
                 self.wrt,
