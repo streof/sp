@@ -1,10 +1,10 @@
-use anyhow::{Context, Result};
-use grrs::cli::Cli;
+use anyhow::Context;
+use grrs::cli::{Cli, CliResult};
 use std::fs::File;
 use std::io::{self, BufReader};
 use structopt::StructOpt;
 
-fn main() -> Result<(), anyhow::Error> {
+fn main() -> CliResult {
     // Parse arguments
     let mut args = Cli::from_args();
 

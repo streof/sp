@@ -6,8 +6,10 @@ pub struct Matcher<'a, R> {
     pub pattern: &'a str,
 }
 
+pub type MatcherResult = Result<Vec<BString>, std::io::Error>;
+
 impl<'a, R: BufRead> Matcher<'a, R> {
-    pub fn get_matches(&mut self) -> Result<Vec<BString>, std::io::Error> {
+    pub fn get_matches(&mut self) -> MatcherResult {
         // Closures try to borrow `self` as a whole
         // So assign disjoint fields to variables first
         let (reader, pattern) = (&mut self.reader, &self.pattern);

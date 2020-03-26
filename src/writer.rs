@@ -1,3 +1,5 @@
+use crate::cli::CliResult;
+use crate::matcher::MatcherResult;
 use bstr::BString;
 use std::io::Write;
 use std::str;
@@ -7,10 +9,7 @@ pub struct Writer<W> {
 }
 
 impl<W: Write> Writer<W> {
-    pub fn print_matches(
-        mut self,
-        matches: Result<Vec<BString>, std::io::Error>,
-    ) -> Result<(), anyhow::Error> {
+    pub fn print_matches(mut self, matches: MatcherResult) -> CliResult {
         match matches {
             Ok(single_match) => self.print_lines_iter(&single_match).expect("Error occured"),
             Err(_) => println!("Error occured"),
@@ -18,7 +17,7 @@ impl<W: Write> Writer<W> {
         Ok(())
     }
 
-    pub fn print_lines_iter(&mut self, lines: &[BString]) -> Result<(), anyhow::Error> {
+    pub fn print_lines_iter(&mut self, lines: &[BString]) -> CliResult {
         for line in lines.iter() {
             writeln!(
                 self.wrt,

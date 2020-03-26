@@ -26,12 +26,10 @@ pub struct Cli {
     pub no_line_number: bool,
 }
 
+pub type CliResult = anyhow::Result<(), anyhow::Error>;
+
 impl Cli {
-    pub fn show_matches(
-        &mut self,
-        mut reader: impl BufRead,
-        writer: impl Write,
-    ) -> std::result::Result<(), anyhow::Error> {
+    pub fn show_matches(&mut self, mut reader: impl BufRead, writer: impl Write) -> CliResult {
         let mut matcher = Matcher {
             reader: &mut reader,
             pattern: &self.pattern,
