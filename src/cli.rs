@@ -28,12 +28,19 @@ pub struct Cli {
 
 pub type CliResult = anyhow::Result<(), anyhow::Error>;
 
+pub struct Config {
+    pub no_line_number: bool,
+}
+
 impl Cli {
     pub fn show_matches(&mut self, mut reader: impl BufRead, writer: impl Write) -> CliResult {
+        let config = Config {
+            no_line_number: self.no_line_number,
+        };
         let mut matcher = Matcher {
             reader: &mut reader,
             pattern: &self.pattern,
-            no_line_number: &self.no_line_number,
+            config,
         };
 
         let wrt = Writer { wrt: writer };

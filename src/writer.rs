@@ -35,6 +35,7 @@ impl<W: Write> Writer<W> {
 mod tests {
 
     use super::*;
+    use crate::cli::Config;
     use crate::matcher::*;
     use std::fs::File;
     use std::io::Cursor;
@@ -58,11 +59,14 @@ and then stopped\
 make a run
 made a quick run
 ";
-        // Build matcher
+        // Build config and matcher
+        let config = Config {
+            no_line_number: false,
+        };
         let mut matcher = Matcher {
             reader: &mut Cursor::new(DICKENS.as_bytes()),
             pattern: &"run".to_owned(),
-            no_line_number: &false,
+            config,
         };
         let matches = matcher.get_matches();
 

@@ -1,10 +1,11 @@
+use crate::cli::Config;
 use bstr::{io::BufReadExt, BString, ByteSlice};
 use std::io::BufRead;
 
 pub struct Matcher<'a, R> {
     pub reader: R,
     pub pattern: &'a str,
-    pub no_line_number: &'a bool,
+    pub config: Config,
 }
 
 pub struct MatchResult {
@@ -19,12 +20,12 @@ impl<'a, R: BufRead> Matcher<'a, R> {
         // Closures try to borrow `self` as a whole
         // So assign disjoint fields to variables first
         let (reader, pattern, no_line_number) =
-            (&mut self.reader, &self.pattern, self.no_line_number);
+            (&mut self.reader, &self.pattern, self.config.no_line_number);
         let mut matches = vec![];
         let mut line_numbers_inner = vec![];
 
         // Find and store matches (and line numbers if required) in a vec
-        let line_numbers = if *no_line_number {
+        let line_numbers = if no_line_number {
             reader.for_byte_line_with_terminator(|line| {
                 if line.contains_str(pattern) {
                     matches.push(line.into());
@@ -68,12 +69,15 @@ mod tests {
     fn find_no_match() {
         let mut line = Cursor::new(LINE.as_bytes());
         let pattern = &"Made".to_owned();
-        let no_line_number = &true;
+
+        let config = Config {
+            no_line_number: true,
+        };
 
         let mut matcher = Matcher {
             reader: &mut line,
             pattern,
-            no_line_number,
+            config,
         };
 
         let matcher_result = matcher.get_matches();
@@ -89,12 +93,15 @@ mod tests {
     fn find_a_match() {
         let mut line = Cursor::new(LINE.as_bytes());
         let pattern = &"made".to_owned();
-        let no_line_number = &false;
+
+        let config = Config {
+            no_line_number: false,
+        };
 
         let mut matcher = Matcher {
             reader: &mut line,
             pattern,
-            no_line_number,
+            config,
         };
 
         let matcher_result = matcher.get_matches();
@@ -112,12 +119,15 @@ mod tests {
     fn search_binary_text() {
         let mut line = Cursor::new(LINE_BIN.as_bytes());
         let pattern = &"made".to_owned();
-        let no_line_number = &false;
+
+        let config = Config {
+            no_line_number: false,
+        };
 
         let mut matcher = Matcher {
             reader: &mut line,
             pattern,
-            no_line_number,
+            config,
         };
 
         let matches = matcher.get_matches();
@@ -129,12 +139,15 @@ mod tests {
     fn search_binary_text2() {
         let mut line = Cursor::new(LINE_BIN2.as_bytes());
         let pattern = &"made".to_owned();
-        let no_line_number = &false;
+
+        let config = Config {
+            no_line_number: false,
+        };
 
         let mut matcher = Matcher {
             reader: &mut line,
             pattern,
-            no_line_number,
+            config,
         };
 
         let matches = matcher.get_matches();
@@ -150,12 +163,15 @@ mod tests {
     fn search_binary_text3() {
         let mut line = Cursor::new(LINE_BIN3.as_bytes());
         let pattern = &"r\x00un".to_owned();
-        let no_line_number = &false;
+
+        let config = Config {
+            no_line_number: false,
+        };
 
         let mut matcher = Matcher {
             reader: &mut line,
             pattern,
-            no_line_number,
+            config,
         };
 
         let matches = matcher.get_matches();
