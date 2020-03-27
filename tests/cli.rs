@@ -27,7 +27,24 @@ fn find_content_in_file() -> Result<(), Box<dyn Error>> {
     cmd.arg("test").arg(file.path());
     cmd.assert()
         .success()
-        .stdout(predicate::str::contains("test\nA\x00nother test"));
+        .stdout(predicate::str::contains("1:A test\n4:A\x00nother test"));
+
+    Ok(())
+}
+
+#[test]
+fn find_content_in_file_no_line_number() -> Result<(), Box<dyn Error>> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(
+        file,
+        "A test\nActual content\r\nMore content\nA\x00nother test"
+    )?;
+
+    let mut cmd = Command::cargo_bin("grrs")?;
+    cmd.arg("test").arg(file.path()).arg("-n");
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains("A test\nA\x00nother test"));
 
     Ok(())
 }
