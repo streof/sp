@@ -1,4 +1,4 @@
-use crate::cli::CliResult;
+use crate::cli::{CliResult, Config};
 use crate::matcher::{MatchResult, MatcherResult};
 use std::io::Write;
 use std::str;
@@ -8,24 +8,42 @@ pub struct Writer<W> {
 }
 
 impl<W: Write> Writer<W> {
-    pub fn print_matches(mut self, matcher_result: MatcherResult) -> CliResult {
+    pub fn print_matches(mut self, matcher_result: MatcherResult, config: &Config) -> CliResult {
         match matcher_result {
-            Ok(match_result) => self.print_lines_iter(match_result).expect("Error occured"),
+            Ok(match_result) => self
+                .print_lines_iter(match_result, config)
+                .expect("Error occured"),
             Err(_) => println!("Error occured"),
         };
         Ok(())
     }
 
-    fn print_lines_iter(&mut self, match_result: MatchResult) -> CliResult {
+    fn print_lines_iter(&mut self, match_result: MatchResult, config: &Config) -> CliResult {
+        let no_line_number = config.no_line_number;
         let matches = match_result.matches;
-        for line in matches.iter() {
-            writeln!(
-                self.wrt,
-                "{}",
-                str::from_utf8(line.as_slice())
-                    .expect("Found invalid UTF-8")
-                    .trim_end()
-            )?;
+        let line_numbers = match_result.line_numbers;
+        if !no_line_number {
+            let line_numbers_inner = line_numbers.unwrap();
+            for (line_number, single_match) in line_numbers_inner.iter().zip(matches) {
+                writeln!(
+                    self.wrt,
+                    "{}:{}",
+                    line_number,
+                    str::from_utf8(single_match.as_slice())
+                        .expect("Found invalid UTF-8")
+                        .trim_end()
+                )?;
+            }
+        } else {
+            for line in matches.iter() {
+                writeln!(
+                    self.wrt,
+                    "{}",
+                    str::from_utf8(line.as_slice())
+                        .expect("Found invalid UTF-8")
+                        .trim_end()
+                )?;
+            }
         }
         Ok(())
     }
@@ -35,7 +53,6 @@ impl<W: Write> Writer<W> {
 mod tests {
 
     use super::*;
-    use crate::cli::Config;
     use crate::matcher::*;
     use std::fs::File;
     use std::io::Cursor;
@@ -54,10 +71,10 @@ and then stopped\
 ";
 
     #[test]
-    fn text_output() {
+    fn print_dickens() {
         let expected = "\
-make a run
-made a quick run
+2:make a run
+5:made a quick run
 ";
         // Build config and matcher
         let config = Config {
@@ -66,7 +83,7 @@ made a quick run
         let mut matcher = Matcher {
             reader: &mut Cursor::new(DICKENS.as_bytes()),
             pattern: &"run".to_owned(),
-            config,
+            config: &config,
         };
         let matches = matcher.get_matches();
 
@@ -75,7 +92,41 @@ made a quick run
         let wrt = Writer {
             wrt: Write::by_ref(&mut tmpfile),
         };
-        wrt.print_matches(matches).unwrap();
+        wrt.print_matches(matches, &config).unwrap();
+
+        // Seek to start (!)
+        tmpfile.seek(SeekFrom::Start(0)).unwrap();
+
+        // Read back
+        let mut got = String::new();
+        tmpfile.read_to_string(&mut got).unwrap();
+
+        assert_eq!(expected, got);
+    }
+
+    #[test]
+    fn print_dickens_no_line_number() {
+        let expected = "\
+make a run
+made a quick run
+";
+        // Build config and matcher
+        let config = Config {
+            no_line_number: true,
+        };
+        let mut matcher = Matcher {
+            reader: &mut Cursor::new(DICKENS.as_bytes()),
+            pattern: &"run".to_owned(),
+            config: &config,
+        };
+        let matches = matcher.get_matches();
+
+        // Write to temp file
+        let mut tmpfile: File = tempfile::tempfile().unwrap();
+        let wrt = Writer {
+            wrt: Write::by_ref(&mut tmpfile),
+        };
+        wrt.print_matches(matches, &config).unwrap();
 
         // Seek to start (!)
         tmpfile.seek(SeekFrom::Start(0)).unwrap();
