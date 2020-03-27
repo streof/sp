@@ -40,13 +40,13 @@ impl Cli {
         let mut matcher = Matcher {
             reader: &mut reader,
             pattern: &self.pattern,
-            config,
+            config: &config,
         };
 
         let wrt = Writer { wrt: writer };
 
         let matches = matcher.get_matches();
-        wrt.print_matches(matches)?;
+        wrt.print_matches(matches, &config)?;
 
         // Return () on success
         Ok(())

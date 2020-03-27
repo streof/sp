@@ -5,7 +5,7 @@ use std::io::BufRead;
 pub struct Matcher<'a, R> {
     pub reader: R,
     pub pattern: &'a str,
-    pub config: Config,
+    pub config: &'a Config,
 }
 
 pub struct MatchResult {
@@ -77,7 +77,7 @@ mod tests {
         let mut matcher = Matcher {
             reader: &mut line,
             pattern,
-            config,
+            config: &config,
         };
 
         let matcher_result = matcher.get_matches();
@@ -101,7 +101,7 @@ mod tests {
         let mut matcher = Matcher {
             reader: &mut line,
             pattern,
-            config,
+            config: &config,
         };
 
         let matcher_result = matcher.get_matches();
@@ -127,7 +127,7 @@ mod tests {
         let mut matcher = Matcher {
             reader: &mut line,
             pattern,
-            config,
+            config: &config,
         };
 
         let matches = matcher.get_matches();
@@ -147,7 +147,7 @@ mod tests {
         let mut matcher = Matcher {
             reader: &mut line,
             pattern,
-            config,
+            config: &config,
         };
 
         let matches = matcher.get_matches();
@@ -171,7 +171,7 @@ mod tests {
         let mut matcher = Matcher {
             reader: &mut line,
             pattern,
-            config,
+            config: &config,
         };
 
         let matches = matcher.get_matches();
