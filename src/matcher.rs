@@ -4,9 +4,14 @@ use std::io::BufRead;
 pub struct Matcher<'a, R> {
     pub reader: R,
     pub pattern: &'a str,
+    pub no_line_number: &'a bool,
 }
 
-pub type MatcherResult = Result<Vec<BString>, std::io::Error>;
+pub struct MatchResult {
+    pub matches: Vec<BString>,
+}
+
+pub type MatcherResult = Result<MatchResult, std::io::Error>;
 
 impl<'a, R: BufRead> Matcher<'a, R> {
     pub fn get_matches(&mut self) -> MatcherResult {
@@ -20,7 +25,8 @@ impl<'a, R: BufRead> Matcher<'a, R> {
             }
             Ok(true)
         })?;
-        Ok(matches)
+        let match_result = MatchResult { matches };
+        Ok(match_result)
     }
 }
 
@@ -39,77 +45,93 @@ mod tests {
     fn find_no_match() {
         let mut line = Cursor::new(LINE.as_bytes());
         let pattern = &"Made".to_owned();
+        let no_line_number = &false;
 
         let mut matcher = Matcher {
             reader: &mut line,
             pattern,
+            no_line_number,
         };
 
         let matches = matcher.get_matches();
 
-        assert!(matches.as_ref().unwrap().is_empty());
+        assert!(matches.as_ref().unwrap().matches.is_empty());
     }
 
     #[test]
     fn find_a_match() {
         let mut line = Cursor::new(LINE.as_bytes());
         let pattern = &"made".to_owned();
+        let no_line_number = &false;
 
         let mut matcher = Matcher {
             reader: &mut line,
             pattern,
+            no_line_number,
         };
 
         let matches = matcher.get_matches();
 
-        assert!(matches.as_ref().unwrap().len() == 1);
-        assert_eq!(matches.as_ref().unwrap()[0], &b"made a run\n"[..]);
+        assert!(matches.as_ref().unwrap().matches.len() == 1);
+        assert_eq!(matches.as_ref().unwrap().matches[0], &b"made a run\n"[..]);
     }
 
     #[test]
     fn search_binary_text() {
         let mut line = Cursor::new(LINE_BIN.as_bytes());
         let pattern = &"made".to_owned();
+        let no_line_number = &false;
 
         let mut matcher = Matcher {
             reader: &mut line,
             pattern,
+            no_line_number,
         };
 
         let matches = matcher.get_matches();
 
-        assert_eq!(matches.as_ref().unwrap().len(), 0);
+        assert_eq!(matches.as_ref().unwrap().matches.len(), 0);
     }
 
     #[test]
     fn search_binary_text2() {
         let mut line = Cursor::new(LINE_BIN2.as_bytes());
         let pattern = &"made".to_owned();
+        let no_line_number = &false;
 
         let mut matcher = Matcher {
             reader: &mut line,
             pattern,
+            no_line_number,
         };
 
         let matches = matcher.get_matches();
 
-        assert_eq!(matches.as_ref().unwrap().len(), 1);
-        assert_eq!(matches.as_ref().unwrap()[0], &b"made a r\x00un\n"[..]);
+        assert_eq!(matches.as_ref().unwrap().matches.len(), 1);
+        assert_eq!(
+            matches.as_ref().unwrap().matches[0],
+            &b"made a r\x00un\n"[..]
+        );
     }
 
     #[test]
     fn search_binary_text3() {
         let mut line = Cursor::new(LINE_BIN3.as_bytes());
         let pattern = &"r\x00un".to_owned();
+        let no_line_number = &false;
 
         let mut matcher = Matcher {
             reader: &mut line,
             pattern,
+            no_line_number,
         };
 
         let matches = matcher.get_matches();
 
-        assert_eq!(matches.as_ref().unwrap().len(), 1);
-        assert_eq!(matches.as_ref().unwrap()[0], &b"made a r\x00un\r\n"[..]);
+        assert_eq!(matches.as_ref().unwrap().matches.len(), 1);
+        assert_eq!(
+            matches.as_ref().unwrap().matches[0],
+            &b"made a r\x00un\r\n"[..]
+        );
     }
 }

@@ -9,9 +9,11 @@ pub struct Writer<W> {
 }
 
 impl<W: Write> Writer<W> {
-    pub fn print_matches(mut self, matches: MatcherResult) -> CliResult {
-        match matches {
-            Ok(single_match) => self.print_lines_iter(&single_match).expect("Error occured"),
+    pub fn print_matches(mut self, match_result: MatcherResult) -> CliResult {
+        match match_result {
+            Ok(single_match) => self
+                .print_lines_iter(&single_match.matches)
+                .expect("Error occured"),
             Err(_) => println!("Error occured"),
         };
         Ok(())
@@ -62,6 +64,7 @@ made a quick run
         let mut matcher = Matcher {
             reader: &mut Cursor::new(DICKENS.as_bytes()),
             pattern: &"run".to_owned(),
+            no_line_number: &false,
         };
         let matches = matcher.get_matches();
 

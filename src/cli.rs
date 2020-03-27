@@ -33,6 +33,7 @@ impl Cli {
         let mut matcher = Matcher {
             reader: &mut reader,
             pattern: &self.pattern,
+            no_line_number: &self.no_line_number,
         };
 
         let wrt = Writer { wrt: writer };
