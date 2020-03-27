@@ -9,6 +9,7 @@ pub struct Matcher<'a, R> {
 
 pub struct MatchResult {
     pub matches: Vec<BString>,
+    pub line_numbers: Option<Vec<u64>>,
 }
 
 pub type MatcherResult = Result<MatchResult, std::io::Error>;
@@ -17,15 +18,37 @@ impl<'a, R: BufRead> Matcher<'a, R> {
     pub fn get_matches(&mut self) -> MatcherResult {
         // Closures try to borrow `self` as a whole
         // So assign disjoint fields to variables first
-        let (reader, pattern) = (&mut self.reader, &self.pattern);
-        let mut matches = Vec::new();
-        reader.for_byte_line_with_terminator(|line| {
-            if line.contains_str(pattern) {
-                matches.push(line.into()); // convert to BString first
-            }
-            Ok(true)
-        })?;
-        let match_result = MatchResult { matches };
+        let (reader, pattern, no_line_number) =
+            (&mut self.reader, &self.pattern, self.no_line_number);
+        let mut matches = vec![];
+        let mut line_numbers_inner = vec![];
+
+        // Find and store matches (and line numbers if required) in a vec
+        let line_numbers = if *no_line_number {
+            reader.for_byte_line_with_terminator(|line| {
+                if line.contains_str(pattern) {
+                    matches.push(line.into());
+                }
+                Ok(true)
+            })?;
+            None
+        } else {
+            let mut line_number: u64 = 0;
+            reader.for_byte_line_with_terminator(|line| {
+                line_number += 1;
+                if line.contains_str(pattern) {
+                    matches.push(line.into()); // convert to BString first
+                    line_numbers_inner.push(line_number);
+                }
+                Ok(true)
+            })?;
+            Some(line_numbers_inner)
+        };
+
+        let match_result = MatchResult {
+            matches,
+            line_numbers,
+        };
         Ok(match_result)
     }
 }
@@ -45,7 +68,7 @@ mod tests {
     fn find_no_match() {
         let mut line = Cursor::new(LINE.as_bytes());
         let pattern = &"Made".to_owned();
-        let no_line_number = &false;
+        let no_line_number = &true;
 
         let mut matcher = Matcher {
             reader: &mut line,
@@ -53,9 +76,13 @@ mod tests {
             no_line_number,
         };
 
-        let matches = matcher.get_matches();
+        let matcher_result = matcher.get_matches();
+        let match_result = matcher_result.as_ref().unwrap();
+        let matches = &match_result.matches;
+        let line_numbers = &match_result.line_numbers;
 
-        assert!(matches.as_ref().unwrap().matches.is_empty());
+        assert!(matches.is_empty());
+        assert_eq!(line_numbers.is_none(), true);
     }
 
     #[test]
@@ -70,10 +97,15 @@ mod tests {
             no_line_number,
         };
 
-        let matches = matcher.get_matches();
+        let matcher_result = matcher.get_matches();
+        let match_result = matcher_result.as_ref().unwrap();
+        let matches = &match_result.matches;
+        let line_numbers = match_result.line_numbers.as_ref();
 
-        assert!(matches.as_ref().unwrap().matches.len() == 1);
-        assert_eq!(matches.as_ref().unwrap().matches[0], &b"made a run\n"[..]);
+        assert!(matches.len() == 1);
+        assert_eq!(matches[0], &b"made a run\n"[..]);
+        let line_number_inner: Vec<u64> = vec![2];
+        assert_eq!(line_numbers, Some(&line_number_inner));
     }
 
     #[test]
