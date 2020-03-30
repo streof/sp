@@ -1,7 +1,7 @@
 use crate::cli::{CliResult, Config};
+use crate::ext::BStringExt;
 use crate::matcher::{MatchResult, MatcherResult};
 use std::io::Write;
-use std::str;
 
 pub struct Writer<W> {
     pub wrt: W,
@@ -29,20 +29,12 @@ impl<W: Write> Writer<W> {
                     self.wrt,
                     "{}:{}",
                     line_number,
-                    str::from_utf8(single_match.as_slice())
-                        .expect("Found invalid UTF-8")
-                        .trim_end()
+                    BStringExt::to_utf8(&single_match)
                 )?;
             }
         } else {
             for line in matches.iter() {
-                writeln!(
-                    self.wrt,
-                    "{}",
-                    str::from_utf8(line.as_slice())
-                        .expect("Found invalid UTF-8")
-                        .trim_end()
-                )?;
+                writeln!(self.wrt, "{}", BStringExt::to_utf8(line))?;
             }
         }
         Ok(())

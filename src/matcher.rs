@@ -1,4 +1,5 @@
 use crate::cli::Config;
+use crate::ext::ByteSliceExt;
 use bstr::{io::BufReadExt, BString, ByteSlice};
 use std::io::BufRead;
 
@@ -25,10 +26,11 @@ impl<'a, R: BufRead> Matcher<'a, R> {
         let mut line_numbers_inner = vec![];
 
         // Find and store matches (and line numbers if required) in a vec
+        // It's cheaper to only strip the terminator for matched lines
         let line_numbers = if no_line_number {
             reader.for_byte_line_with_terminator(|line| {
                 if line.contains_str(pattern) {
-                    matches.push(line.into());
+                    matches.push(line.trim_terminator());
                 }
                 Ok(true)
             })?;
@@ -38,7 +40,7 @@ impl<'a, R: BufRead> Matcher<'a, R> {
             reader.for_byte_line_with_terminator(|line| {
                 line_number += 1;
                 if line.contains_str(pattern) {
-                    matches.push(line.into()); // convert to BString first
+                    matches.push(line.trim_terminator());
                     line_numbers_inner.push(line_number);
                 }
                 Ok(true)
@@ -110,7 +112,7 @@ mod tests {
         let line_numbers = match_result.line_numbers.as_ref();
 
         assert!(matches.len() == 1);
-        assert_eq!(matches[0], &b"made a run\n"[..]);
+        assert_eq!(matches[0], &b"made a run"[..]);
         let line_number_inner: Vec<u64> = vec![2];
         assert_eq!(line_numbers, Some(&line_number_inner));
     }
@@ -153,10 +155,7 @@ mod tests {
         let matches = matcher.get_matches();
 
         assert_eq!(matches.as_ref().unwrap().matches.len(), 1);
-        assert_eq!(
-            matches.as_ref().unwrap().matches[0],
-            &b"made a r\x00un\n"[..]
-        );
+        assert_eq!(matches.as_ref().unwrap().matches[0], &b"made a r\x00un"[..]);
     }
 
     #[test]
@@ -177,9 +176,6 @@ mod tests {
         let matches = matcher.get_matches();
 
         assert_eq!(matches.as_ref().unwrap().matches.len(), 1);
-        assert_eq!(
-            matches.as_ref().unwrap().matches[0],
-            &b"made a r\x00un\r\n"[..]
-        );
+        assert_eq!(matches.as_ref().unwrap().matches[0], &b"made a r\x00un"[..]);
     }
 }
