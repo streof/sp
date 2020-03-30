@@ -12,8 +12,8 @@ impl<W: Write> Writer<W> {
         match matcher_result {
             Ok(match_result) => self
                 .print_lines_iter(match_result, config)
-                .expect("Error occured"),
-            Err(_) => println!("Error occured"),
+                .expect("Error occured while printing matches"),
+            Err(err) => eprintln!("Error occured while searching for matches: {}", err),
         };
         Ok(())
     }
