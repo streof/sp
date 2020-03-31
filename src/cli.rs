@@ -28,15 +28,60 @@ pub struct Cli {
 
 pub type CliResult = anyhow::Result<(), anyhow::Error>;
 
+/// Internal configuration of our cli which can only by modified by ConfigBuilder.
+#[derive(Clone, Debug)]
 pub struct Config {
     pub no_line_number: bool,
 }
 
+impl Default for Config {
+    fn default() -> Config {
+        Config {
+            no_line_number: false,
+        }
+    }
+}
+
+/// Builder for our cli configurations; once built cheaper to reuse
+#[derive(Clone, Debug)]
+pub struct ConfigBuilder {
+    config: Config,
+}
+
+impl Default for ConfigBuilder {
+    fn default() -> ConfigBuilder {
+        ConfigBuilder::new()
+    }
+}
+
+impl ConfigBuilder {
+    /// Create a new Config builder with a default configuration.
+    pub fn new() -> ConfigBuilder {
+        ConfigBuilder {
+            config: Config::default(),
+        }
+    }
+
+    /// Disabled by default
+    pub fn no_line_number(&mut self, yes: bool) -> &mut ConfigBuilder {
+        self.config.no_line_number = yes;
+        self
+    }
+
+    // Build ConfigBuilder
+    pub fn build(&self) -> Config {
+        Config {
+            no_line_number: self.config.no_line_number,
+        }
+    }
+}
+
 impl Cli {
     pub fn show_matches(&mut self, mut reader: impl BufRead, writer: impl Write) -> CliResult {
-        let config = Config {
-            no_line_number: self.no_line_number,
-        };
+        let mut builder = ConfigBuilder::new();
+        builder.no_line_number(self.no_line_number);
+        let config = builder.build();
+
         let mut matcher = Matcher {
             reader: &mut reader,
             pattern: &self.pattern,
