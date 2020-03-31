@@ -1,10 +1,33 @@
 use crate::{matcher::*, writer::*};
 use std::io::{BufRead, Write};
 use std::path::PathBuf;
+use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
+const ABOUT: &str = "
+grrs is a very basic implementation of grep. Use -h for more information.";
+
+const USAGE: &str = "
+    grrs [OPTIONS] <PATTERN> <PATH>";
+
+const TEMPLATE: &str = "\
+{bin} {version}
+{about}
+
+USAGE:{usage}
+
+ARGS:
+{positionals}
+
+OPTIONS:
+{unified}";
+
+// AppSettings::DeriveDisplayOrder might be helpful for custom ordering
+// AppSettings::HidePossibleValuesInHelp for concise usage message
+#[structopt(rename_all = "kebab-case", about = ABOUT, usage = USAGE, 
+    template = TEMPLATE, 
+    global_settings(&[AppSettings::UnifiedHelpMessage]))]
 #[derive(StructOpt)]
-#[structopt(rename_all = "kebab-case")]
 pub struct Cli {
     #[structopt(
         name = "PATTERN",
