@@ -33,8 +33,8 @@ impl<W: Write> Writer<W> {
                 )?;
             }
         } else {
-            for line in matches.iter() {
-                writeln!(self.wrt, "{}", BStringExt::to_utf8(line))?;
+            for single_match in matches.iter() {
+                writeln!(self.wrt, "{}", BStringExt::to_utf8(single_match))?;
             }
         }
         Ok(())
