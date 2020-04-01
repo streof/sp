@@ -1,6 +1,6 @@
 use crate::cli::{CliResult, Config};
 use crate::ext::BStringExt;
-use crate::matcher::{MatchResult, MatcherResult};
+use crate::matcher::{LineNumbers, MatchResult, MatcherResult};
 use std::io::Write;
 
 pub struct Writer<W> {
@@ -23,14 +23,15 @@ impl<W: Write> Writer<W> {
         let matches = match_result.matches;
         let line_numbers = match_result.line_numbers;
         if !no_line_number {
-            let line_numbers_inner = line_numbers.unwrap();
-            for (line_number, single_match) in line_numbers_inner.iter().zip(matches) {
-                writeln!(
-                    self.wrt,
-                    "{}:{}",
-                    line_number,
-                    BStringExt::to_utf8(&single_match)
-                )?;
+            if let LineNumbers::Some(line_numbers_inner) = line_numbers {
+                for (line_number, single_match) in line_numbers_inner.iter().zip(matches) {
+                    writeln!(
+                        self.wrt,
+                        "{}:{}",
+                        line_number,
+                        BStringExt::to_utf8(&single_match)
+                    )?;
+                }
             }
         } else {
             for single_match in matches.iter() {

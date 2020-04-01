@@ -1,6 +1,7 @@
 use crate::cli::Config;
 use crate::ext::ByteSliceExt;
 use bstr::{io::BufReadExt, BString, ByteSlice};
+use std::cmp::PartialEq;
 use std::io::BufRead;
 
 pub struct Matcher<'a, R> {
@@ -11,7 +12,13 @@ pub struct Matcher<'a, R> {
 
 pub struct MatchResult {
     pub matches: Vec<BString>,
-    pub line_numbers: Option<Vec<u64>>,
+    pub line_numbers: LineNumbers,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum LineNumbers {
+    None,
+    Some(Vec<u64>),
 }
 
 pub type MatcherResult = Result<MatchResult, std::io::Error>;
@@ -24,17 +31,17 @@ impl<'a, R: BufRead> Matcher<'a, R> {
             (&mut self.reader, &self.pattern, self.config.no_line_number);
         let mut matches = vec![];
         let mut line_numbers_inner = vec![];
+        let mut line_numbers = LineNumbers::None;
 
         // Find and store matches (and line numbers if required) in a vec
         // It's cheaper to only strip the terminator for matched lines
-        let line_numbers = if no_line_number {
+        if no_line_number {
             reader.for_byte_line_with_terminator(|line| {
                 if line.contains_str(pattern) {
                     matches.push(line.trim_terminator());
                 }
                 Ok(true)
             })?;
-            None
         } else {
             let mut line_number: u64 = 0;
             reader.for_byte_line_with_terminator(|line| {
@@ -45,7 +52,7 @@ impl<'a, R: BufRead> Matcher<'a, R> {
                 }
                 Ok(true)
             })?;
-            Some(line_numbers_inner)
+            line_numbers = LineNumbers::Some(line_numbers_inner);
         };
 
         let match_result = MatchResult {
@@ -88,7 +95,7 @@ mod tests {
         let line_numbers = &match_result.line_numbers;
 
         assert!(matches.is_empty());
-        assert_eq!(line_numbers.is_none(), true);
+        assert_eq!(line_numbers, &LineNumbers::None);
     }
 
     #[test]
@@ -109,12 +116,12 @@ mod tests {
         let matcher_result = matcher.get_matches();
         let match_result = matcher_result.as_ref().unwrap();
         let matches = &match_result.matches;
-        let line_numbers = match_result.line_numbers.as_ref();
+        let line_numbers = &match_result.line_numbers;
 
         assert!(matches.len() == 1);
         assert_eq!(matches[0], &b"made a run"[..]);
         let line_number_inner: Vec<u64> = vec![2];
-        assert_eq!(line_numbers, Some(&line_number_inner));
+        assert_eq!(line_numbers, &LineNumbers::Some(line_number_inner));
     }
 
     #[test]
