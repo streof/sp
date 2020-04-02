@@ -23,43 +23,131 @@ pub enum LineNumbers {
 
 pub type MatcherResult = Result<MatchResult, std::io::Error>;
 
+// Closures try to borrow `self` as a whole so assign disjoint fields to
+// variables first
 impl<'a, R: BufRead> Matcher<'a, R> {
-    pub fn get_matches(&mut self) -> MatcherResult {
-        // Closures try to borrow `self` as a whole
-        // So assign disjoint fields to variables first
-        let (reader, pattern, no_line_number) =
-            (&mut self.reader, &self.pattern, self.config.no_line_number);
-        let mut matches = vec![];
-        let mut line_numbers_inner = vec![];
-        let mut line_numbers = LineNumbers::None;
+    pub fn limit_no_line_number(&mut self) -> MatcherResult {
+        let (reader, pattern, mut matches_left) = (
+            &mut self.reader,
+            &self.pattern,
+            self.config.max_count.unwrap(),
+        );
 
-        // Find and store matches (and line numbers if required) in a vec
-        // It's cheaper to only strip the terminator for matched lines
-        if no_line_number {
-            reader.for_byte_line_with_terminator(|line| {
-                if line.contains_str(pattern) {
-                    matches.push(line.trim_terminator());
-                }
-                Ok(true)
-            })?;
-        } else {
-            let mut line_number: u64 = 0;
-            reader.for_byte_line_with_terminator(|line| {
-                line_number += 1;
-                if line.contains_str(pattern) {
-                    matches.push(line.trim_terminator());
-                    line_numbers_inner.push(line_number);
-                }
-                Ok(true)
-            })?;
-            line_numbers = LineNumbers::Some(line_numbers_inner);
-        };
+        let mut matches = vec![];
+
+        reader.for_byte_line_with_terminator(|line| {
+            if matches_left == 0 as u64 {
+                return Ok(true);
+            }
+            if line.contains_str(pattern) {
+                matches_left -= 1;
+                matches.push(line.trim_terminator());
+            }
+            Ok(true)
+        })?;
+        let line_numbers = LineNumbers::None;
 
         let match_result = MatchResult {
             matches,
             line_numbers,
         };
+
         Ok(match_result)
+    }
+
+    pub fn limit_line_number(&mut self) -> MatcherResult {
+        let (reader, pattern, mut matches_left) = (
+            &mut self.reader,
+            &self.pattern,
+            self.config.max_count.unwrap(),
+        );
+
+        let mut matches = vec![];
+        let mut line_numbers_inner = vec![];
+        let mut line_number: u64 = 0;
+
+        reader.for_byte_line_with_terminator(|line| {
+            if matches_left == 0 as u64 {
+                return Ok(true);
+            }
+            line_number += 1;
+            if line.contains_str(pattern) {
+                matches_left -= 1;
+                matches.push(line.trim_terminator());
+                line_numbers_inner.push(line_number);
+            }
+            Ok(true)
+        })?;
+        let line_numbers = LineNumbers::Some(line_numbers_inner);
+
+        let match_result = MatchResult {
+            matches,
+            line_numbers,
+        };
+
+        Ok(match_result)
+    }
+
+    pub fn no_limit_no_line_number(&mut self) -> MatcherResult {
+        let (reader, pattern) = (&mut self.reader, &self.pattern);
+
+        let mut matches = vec![];
+
+        reader.for_byte_line_with_terminator(|line| {
+            if line.contains_str(pattern) {
+                matches.push(line.trim_terminator());
+            }
+            Ok(true)
+        })?;
+        let line_numbers = LineNumbers::None;
+
+        let match_result = MatchResult {
+            matches,
+            line_numbers,
+        };
+
+        Ok(match_result)
+    }
+
+    pub fn no_limit_line_number(&mut self) -> MatcherResult {
+        let (reader, pattern) = (&mut self.reader, &self.pattern);
+
+        let mut matches = vec![];
+        let mut line_numbers_inner = vec![];
+        let mut line_number: u64 = 0;
+
+        reader.for_byte_line_with_terminator(|line| {
+            line_number += 1;
+            if line.contains_str(pattern) {
+                matches.push(line.trim_terminator());
+                line_numbers_inner.push(line_number);
+            }
+            Ok(true)
+        })?;
+        let line_numbers = LineNumbers::Some(line_numbers_inner);
+
+        let match_result = MatchResult {
+            matches,
+            line_numbers,
+        };
+
+        Ok(match_result)
+    }
+
+    pub fn get_matches(&mut self) -> MatcherResult {
+        let (no_line_number, max_count) = (self.config.no_line_number, self.config.max_count);
+
+        if max_count.is_some() {
+            if no_line_number {
+                self.limit_no_line_number()
+            } else {
+                self.limit_line_number()
+            }
+        } else if no_line_number {
+            self.no_limit_no_line_number()
+        } else {
+            self.no_limit_line_number()
+        }
     }
 }
 
@@ -67,21 +155,24 @@ impl<'a, R: BufRead> Matcher<'a, R> {
 mod tests {
     use super::*;
 
+    use crate::cli::ConfigBuilder;
     use std::io::Cursor;
 
     const LINE: &str = "He started\nmade a run\n& stopped";
     const LINE_BIN: &str = "He started\nmad\x00e a run\n& stopped";
     const LINE_BIN2: &str = "He started\r\nmade a r\x00un\n& stopped";
     const LINE_BIN3: &str = "He started\r\nmade a r\x00un\r\n& stopped";
+    const LINE_MAX: &str = "He started again\nand again\n& again";
 
     #[test]
     fn find_no_match() {
         let mut line = Cursor::new(LINE.as_bytes());
         let pattern = &"Made".to_owned();
 
-        let config = Config {
-            no_line_number: true,
-        };
+        let config = ConfigBuilder::new()
+            .no_line_number(true)
+            .max_count(None)
+            .build();
 
         let mut matcher = Matcher {
             reader: &mut line,
@@ -103,9 +194,10 @@ mod tests {
         let mut line = Cursor::new(LINE.as_bytes());
         let pattern = &"made".to_owned();
 
-        let config = Config {
-            no_line_number: false,
-        };
+        let config = ConfigBuilder::new()
+            .no_line_number(false)
+            .max_count(None)
+            .build();
 
         let mut matcher = Matcher {
             reader: &mut line,
@@ -129,9 +221,10 @@ mod tests {
         let mut line = Cursor::new(LINE_BIN.as_bytes());
         let pattern = &"made".to_owned();
 
-        let config = Config {
-            no_line_number: false,
-        };
+        let config = ConfigBuilder::new()
+            .no_line_number(false)
+            .max_count(None)
+            .build();
 
         let mut matcher = Matcher {
             reader: &mut line,
@@ -149,9 +242,10 @@ mod tests {
         let mut line = Cursor::new(LINE_BIN2.as_bytes());
         let pattern = &"made".to_owned();
 
-        let config = Config {
-            no_line_number: false,
-        };
+        let config = ConfigBuilder::new()
+            .no_line_number(false)
+            .max_count(None)
+            .build();
 
         let mut matcher = Matcher {
             reader: &mut line,
@@ -170,9 +264,10 @@ mod tests {
         let mut line = Cursor::new(LINE_BIN3.as_bytes());
         let pattern = &"r\x00un".to_owned();
 
-        let config = Config {
-            no_line_number: false,
-        };
+        let config = ConfigBuilder::new()
+            .no_line_number(false)
+            .max_count(None)
+            .build();
 
         let mut matcher = Matcher {
             reader: &mut line,
@@ -184,5 +279,74 @@ mod tests {
 
         assert_eq!(matches.as_ref().unwrap().matches.len(), 1);
         assert_eq!(matches.as_ref().unwrap().matches[0], &b"made a r\x00un"[..]);
+    }
+
+    #[test]
+    fn max_count_empty() {
+        let mut line = Cursor::new(LINE_MAX.as_bytes());
+        let pattern = &"again".to_owned();
+
+        let config = ConfigBuilder::new()
+            .no_line_number(false)
+            .max_count(Some(0))
+            .build();
+
+        let mut matcher = Matcher {
+            reader: &mut line,
+            pattern,
+            config: &config,
+        };
+
+        let matches = matcher.get_matches();
+
+        assert_eq!(matches.as_ref().unwrap().matches.len(), 0);
+    }
+
+    #[test]
+    fn max_count_two() {
+        let mut line = Cursor::new(LINE_MAX.as_bytes());
+        let pattern = &"again".to_owned();
+
+        let config = ConfigBuilder::new()
+            .no_line_number(false)
+            .max_count(Some(2))
+            .build();
+
+        let mut matcher = Matcher {
+            reader: &mut line,
+            pattern,
+            config: &config,
+        };
+
+        let matches = matcher.get_matches();
+
+        assert_eq!(matches.as_ref().unwrap().matches.len(), 2);
+        assert_eq!(
+            matches.as_ref().unwrap().matches[0],
+            &b"He started again"[..]
+        );
+        assert_eq!(matches.as_ref().unwrap().matches[1], &b"and again"[..]);
+    }
+
+    #[test]
+    fn max_count_large() {
+        let mut line = Cursor::new(LINE.as_bytes());
+        let pattern = &"made".to_owned();
+
+        let config = ConfigBuilder::new()
+            .no_line_number(false)
+            .max_count(Some(1000))
+            .build();
+
+        let mut matcher = Matcher {
+            reader: &mut line,
+            pattern,
+            config: &config,
+        };
+
+        let matches = matcher.get_matches();
+
+        assert_eq!(matches.as_ref().unwrap().matches.len(), 1);
+        assert_eq!(matches.as_ref().unwrap().matches[0], &b"made a run"[..]);
     }
 }
