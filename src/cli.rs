@@ -47,6 +47,10 @@ pub struct Cli {
     /// Do not show line number which is enabled by default
     #[structopt(short, long)]
     pub no_line_number: bool,
+
+    /// Limit number of shown matches
+    #[structopt(short, long, value_name="NUM")]
+    pub max_count: Option<u64>,
 }
 
 pub type CliResult = anyhow::Result<(), anyhow::Error>;
@@ -55,12 +59,14 @@ pub type CliResult = anyhow::Result<(), anyhow::Error>;
 #[derive(Clone, Debug)]
 pub struct Config {
     pub no_line_number: bool,
+    pub max_count: Option<u64>,
 }
 
 impl Default for Config {
     fn default() -> Config {
         Config {
             no_line_number: false,
+            max_count: None,
         }
     }
 }
@@ -85,25 +91,33 @@ impl ConfigBuilder {
         }
     }
 
-    /// Disabled by default
-    pub fn no_line_number(&mut self, yes: bool) -> &mut ConfigBuilder {
-        self.config.no_line_number = yes;
+    /// Disabled (i.e. false) by default
+    pub fn no_line_number(&mut self, v: bool) -> &mut ConfigBuilder {
+        self.config.no_line_number = v;
         self
     }
 
-    // Build ConfigBuilder
+    /// Disabled (i.e. None) by default
+    pub fn max_count(&mut self, v: Option<u64>) -> &mut ConfigBuilder {
+        self.config.max_count = v;
+        self
+    }
+
+    /// Build ConfigBuilder
     pub fn build(&self) -> Config {
         Config {
             no_line_number: self.config.no_line_number,
+            max_count: self.config.max_count,
         }
     }
 }
 
 impl Cli {
     pub fn show_matches(&mut self, mut reader: impl BufRead, writer: impl Write) -> CliResult {
-        let mut builder = ConfigBuilder::new();
-        builder.no_line_number(self.no_line_number);
-        let config = builder.build();
+        let config = ConfigBuilder::new()
+            .no_line_number(self.no_line_number)
+            .max_count(self.max_count)
+            .build();
 
         let mut matcher = Matcher {
             reader: &mut reader,
