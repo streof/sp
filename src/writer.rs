@@ -46,6 +46,7 @@ impl<W: Write> Writer<W> {
 mod tests {
 
     use super::*;
+    use crate::cli::ConfigBuilder;
     use crate::matcher::*;
     use std::fs::File;
     use std::io::Cursor;
@@ -70,9 +71,11 @@ and then stopped\
 5:made a quick run
 ";
         // Build config and matcher
-        let config = Config {
-            no_line_number: false,
-        };
+        let config = ConfigBuilder::new()
+            .no_line_number(false)
+            .max_count(None)
+            .build();
+
         let mut matcher = Matcher {
             reader: &mut Cursor::new(DICKENS.as_bytes()),
             pattern: &"run".to_owned(),
@@ -101,12 +104,13 @@ and then stopped\
     fn print_dickens_no_line_number() {
         let expected = "\
 make a run
-made a quick run
 ";
         // Build config and matcher
-        let config = Config {
-            no_line_number: true,
-        };
+        let config = ConfigBuilder::new()
+            .no_line_number(true)
+            .max_count(Some(1))
+            .build();
+
         let mut matcher = Matcher {
             reader: &mut Cursor::new(DICKENS.as_bytes()),
             pattern: &"run".to_owned(),
