@@ -44,13 +44,17 @@ pub struct Cli {
     )]
     pub path: PathBuf,
 
-    /// Do not show line number which is enabled by default
+    /// Case insensitive search
     #[structopt(short, long)]
-    pub no_line_number: bool,
+    pub ignore_case: bool,
 
     /// Limit number of shown matches
     #[structopt(short, long, value_name="NUM")]
     pub max_count: Option<u64>,
+
+    /// Do not show line number which is enabled by default
+    #[structopt(short, long)]
+    pub no_line_number: bool,
 }
 
 pub type CliResult = anyhow::Result<(), anyhow::Error>;
@@ -58,15 +62,17 @@ pub type CliResult = anyhow::Result<(), anyhow::Error>;
 /// Internal configuration of our cli which can only by modified by ConfigBuilder.
 #[derive(Clone, Debug)]
 pub struct Config {
-    pub no_line_number: bool,
+    pub ignore_case: bool,
     pub max_count: Option<u64>,
+    pub no_line_number: bool,
 }
 
 impl Default for Config {
     fn default() -> Config {
         Config {
-            no_line_number: false,
+            ignore_case: false,
             max_count: None,
+            no_line_number: false,
         }
     }
 }
@@ -92,8 +98,8 @@ impl ConfigBuilder {
     }
 
     /// Disabled (i.e. false) by default
-    pub fn no_line_number(&mut self, v: bool) -> &mut ConfigBuilder {
-        self.config.no_line_number = v;
+    pub fn ignore_case(&mut self, v: bool) -> &mut ConfigBuilder {
+        self.config.ignore_case = v;
         self
     }
 
@@ -103,11 +109,18 @@ impl ConfigBuilder {
         self
     }
 
+    /// Disabled (i.e. false) by default
+    pub fn no_line_number(&mut self, v: bool) -> &mut ConfigBuilder {
+        self.config.no_line_number = v;
+        self
+    }
+
     /// Build ConfigBuilder
     pub fn build(&self) -> Config {
         Config {
-            no_line_number: self.config.no_line_number,
+            ignore_case: self.config.ignore_case,
             max_count: self.config.max_count,
+            no_line_number: self.config.no_line_number,
         }
     }
 }
@@ -115,8 +128,9 @@ impl ConfigBuilder {
 impl Cli {
     pub fn show_matches(&mut self, mut reader: impl BufRead, writer: impl Write) -> CliResult {
         let config = ConfigBuilder::new()
-            .no_line_number(self.no_line_number)
+            .ignore_case(self.ignore_case)
             .max_count(self.max_count)
+            .no_line_number(self.no_line_number)
             .build();
 
         let mut matcher = Matcher {
