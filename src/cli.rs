@@ -133,6 +133,10 @@ impl Cli {
             .no_line_number(self.no_line_number)
             .build();
 
+        if self.ignore_case {
+            self.pattern = self.pattern.to_lowercase();
+        }
+
         let mut matcher = Matcher {
             reader: &mut reader,
             pattern: &self.pattern,
