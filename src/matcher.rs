@@ -97,7 +97,7 @@ impl<'a, R: BufRead> Matcher<'a, R> {
             } else {
                 let mut buf = vec![];
                 line.to_lowercase_into(&mut buf);
-                if line.to_lowercase().contains_str(pattern) {
+                if buf.contains_str(pattern) {
                     matches_left -= 1;
                     matches.push(line.trim_terminator());
                 }
@@ -164,7 +164,7 @@ impl<'a, R: BufRead> Matcher<'a, R> {
             } else {
                 let mut buf = vec![];
                 line.to_lowercase_into(&mut buf);
-                if line.to_lowercase().contains_str(pattern) {
+                if buf.contains_str(pattern) {
                     matches_left -= 1;
                     matches.push(line.trim_terminator());
                     line_numbers_inner.push(line_number);
@@ -204,7 +204,7 @@ impl<'a, R: BufRead> Matcher<'a, R> {
             } else {
                 let mut buf = vec![];
                 line.to_lowercase_into(&mut buf);
-                if line.to_lowercase().contains_str(pattern) {
+                if buf.contains_str(pattern) {
                     matches.push(line.trim_terminator());
                 }
             }
@@ -254,7 +254,7 @@ impl<'a, R: BufRead> Matcher<'a, R> {
             } else {
                 let mut buf = vec![];
                 line.to_lowercase_into(&mut buf);
-                if line.to_lowercase().contains_str(pattern) {
+                if buf.contains_str(pattern) {
                     matches.push(line.trim_terminator());
                     line_numbers_inner.push(line_number);
                 }
@@ -286,6 +286,7 @@ impl<'a, R: BufRead> Matcher<'a, R> {
 }
 
 #[cfg(test)]
+// TODO: Add unit test for testing unicode lowercase
 mod tests {
     use super::*;
 
@@ -296,7 +297,7 @@ mod tests {
     const LINE_BIN: &str = "He started\nmad\x00e a run\n& stopped";
     const LINE_BIN2: &str = "He started\r\nmade a r\x00un\n& stopped";
     const LINE_BIN3: &str = "He started\r\nmade a r\x00un\r\n& stopped";
-    const LINE_MAX: &str = "He started again\nand again\n& Again";
+    const LINE_MAX_NON_ASCII: &str = "He started again\na\x00nd again\n& AΓain";
 
     #[test]
     fn find_no_match() {
@@ -417,7 +418,7 @@ mod tests {
 
     #[test]
     fn max_count_empty() {
-        let mut line = Cursor::new(LINE_MAX.as_bytes());
+        let mut line = Cursor::new(LINE_MAX_NON_ASCII.as_bytes());
         let pattern = &"again".to_owned();
 
         let config = ConfigBuilder::new()
@@ -438,7 +439,7 @@ mod tests {
 
     #[test]
     fn max_count_one() {
-        let mut line = Cursor::new(LINE_MAX.as_bytes());
+        let mut line = Cursor::new(LINE_MAX_NON_ASCII.as_bytes());
         let pattern = &"again".to_owned();
 
         let config = ConfigBuilder::new()
@@ -485,7 +486,7 @@ mod tests {
 
     #[test]
     fn line_number_caseless() {
-        let mut line = Cursor::new(LINE_MAX.as_bytes());
+        let mut line = Cursor::new(LINE_MAX_NON_ASCII.as_bytes());
         let pattern = &"again".to_owned();
 
         let config = ConfigBuilder::new()
@@ -505,15 +506,15 @@ mod tests {
         let matches = &match_result.matches;
         let line_numbers = &match_result.line_numbers;
 
-        assert!(matches.len() == 3);
-        let line_number_inner: Vec<u64> = vec![1, 2, 3];
+        assert!(matches.len() == 2);
+        let line_number_inner: Vec<u64> = vec![1, 2];
         assert_eq!(line_numbers, &LineNumbers::Some(line_number_inner));
     }
 
     #[test]
     fn no_line_number_caseless() {
-        let mut line = Cursor::new(LINE_MAX.as_bytes());
-        let pattern = &"again".to_owned();
+        let mut line = Cursor::new(LINE_MAX_NON_ASCII.as_bytes());
+        let pattern = &"aγain".to_owned();
 
         let config = ConfigBuilder::new()
             .ignore_case(true)
@@ -532,13 +533,13 @@ mod tests {
         let matches = &match_result.matches;
         let line_numbers = &match_result.line_numbers;
 
-        assert!(matches.len() == 3);
+        assert!(matches.len() == 1);
         assert_eq!(line_numbers, &LineNumbers::None);
     }
 
     #[test]
     fn limit_line_number_caseless() {
-        let mut line = Cursor::new(LINE_MAX.as_bytes());
+        let mut line = Cursor::new(LINE_MAX_NON_ASCII.as_bytes());
         let pattern = &"again".to_owned();
 
         let config = ConfigBuilder::new()
@@ -565,7 +566,7 @@ mod tests {
 
     #[test]
     fn limit_no_line_number_caseless() {
-        let mut line = Cursor::new(LINE_MAX.as_bytes());
+        let mut line = Cursor::new(LINE_MAX_NON_ASCII.as_bytes());
         let pattern = &"again".to_owned();
 
         let config = ConfigBuilder::new()
