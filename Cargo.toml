@@ -14,7 +14,7 @@ categories = ["command-line-utilities"]
 [dependencies]
 structopt = "0.3"
 anyhow = "1.0"
-bstr = { version = "0.2", default-features = false, features = ["std"] }
+bstr = { version = "0.2", default-features = false, features = ["std", "unicode"] }
 
 [dev-dependencies]
 assert_cmd = "0.12"
