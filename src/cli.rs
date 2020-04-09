@@ -1,4 +1,5 @@
-use crate::{matcher::*, writer::*};
+use crate::matcher::{Matcher, MatcherType};
+use crate::writer::Writer;
 use std::io::{BufRead, Write};
 use std::path::PathBuf;
 use structopt::clap::AppSettings;
@@ -137,15 +138,22 @@ impl Cli {
             self.pattern = self.pattern.to_lowercase();
         }
 
-        let mut matcher = Matcher {
+        // TODO: switch to builder pattern
+        let matcher = Matcher {
             reader: &mut reader,
             pattern: &self.pattern,
             config: &config,
         };
 
-        let wrt = Writer { wrt: writer };
+        #[allow(clippy::match_bool)]
+        let matchertype = match self.max_count.is_some() {
+            false => MatcherType::Base(matcher),
+            true => MatcherType::MaxCount(matcher),
+        };
 
-        let matches = matcher.get_matches();
+        let matches = matchertype.find_matches();
+
+        let wrt = Writer { wrt: writer };
         wrt.print_matches(matches, &config)?;
 
         // Return () on success
