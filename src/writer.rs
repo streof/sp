@@ -76,12 +76,12 @@ and then stopped\
             .max_count(None)
             .build();
 
-        let mut matcher = Matcher {
+        let matcher = Matcher {
             reader: &mut Cursor::new(DICKENS.as_bytes()),
             pattern: &"run".to_owned(),
             config: &config,
         };
-        let matches = matcher.get_matches();
+        let matches = MatcherType::Base(matcher).find_matches();
 
         // Write to temp file
         let mut tmpfile: File = tempfile::tempfile().unwrap();
@@ -111,12 +111,12 @@ make a run
             .max_count(Some(1))
             .build();
 
-        let mut matcher = Matcher {
+        let matcher = Matcher {
             reader: &mut Cursor::new(DICKENS.as_bytes()),
             pattern: &"run".to_owned(),
             config: &config,
         };
-        let matches = matcher.get_matches();
+        let matches = MatcherType::MaxCount(matcher).find_matches();
 
         // Write to temp file
         let mut tmpfile: File = tempfile::tempfile().unwrap();
