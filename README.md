@@ -6,21 +6,27 @@ grrs is a simple hobby project that mainly follows the [cli book](https://rust-c
 
 This project extends the basic example from the cli book:
 
-- Less memory allocation due to an efficient IO buffer (see [Memory allocation](#memory-allocation) below)
+- Less memory allocation (see [Memory allocation](#memory-allocation) below)
+- More features (line numbers, case insensitive search, limit shown matches, etc.)
+- More modulair codebase
+- More tests
 
 ## Options 
 
 ```
 USAGE:
-    grrs <PATTERN> <PATH>
-
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+    grrs [OPTIONS] <PATTERN> <PATH>
 
 ARGS:
     <PATTERN>    A pattern used for matching a sub-slice
     <PATH>       A file to search
+
+OPTIONS:
+    -h, --help               Prints help information
+    -i, --ignore-case        Case insensitive search
+    -m, --max-count <NUM>    Limit number of shown matches
+    -n, --no-line-number     Do not show line number which is enabled by default
+    -V, --version            Prints version information
 ```
 
 
@@ -36,7 +42,7 @@ $ git clone https://github.com/streof/grrs
 $ cd grrs
 $ cargo build --release
 $ ./target/release/grrs --version
-grrs 0.1.0
+grrs 0.1.2
 ```
 
 ## Running tests
