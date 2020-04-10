@@ -1,5 +1,6 @@
-use crate::matcher::{Matcher, MatcherType};
+use crate::searcher::{Searcher, SearchType};
 use crate::writer::Writer;
+use crate::matcher::MatcherBuilder;
 use std::io::{BufRead, Write};
 use std::path::PathBuf;
 use structopt::clap::AppSettings;
@@ -60,101 +61,30 @@ pub struct Cli {
 
 pub type CliResult = anyhow::Result<(), anyhow::Error>;
 
-/// Internal configuration of our cli which can only by modified by ConfigBuilder.
-#[derive(Clone, Debug)]
-pub struct Config {
-    pub ignore_case: bool,
-    pub max_count: Option<u64>,
-    pub no_line_number: bool,
-}
-
-impl Default for Config {
-    fn default() -> Config {
-        Config {
-            ignore_case: false,
-            max_count: None,
-            no_line_number: false,
-        }
-    }
-}
-
-/// Builder for our cli configurations; once built cheaper to reuse
-#[derive(Clone, Debug)]
-pub struct ConfigBuilder {
-    config: Config,
-}
-
-impl Default for ConfigBuilder {
-    fn default() -> ConfigBuilder {
-        ConfigBuilder::new()
-    }
-}
-
-impl ConfigBuilder {
-    /// Create a new Config builder with a default configuration.
-    pub fn new() -> ConfigBuilder {
-        ConfigBuilder {
-            config: Config::default(),
-        }
-    }
-
-    /// Disabled (i.e. false) by default
-    pub fn ignore_case(&mut self, v: bool) -> &mut ConfigBuilder {
-        self.config.ignore_case = v;
-        self
-    }
-
-    /// Disabled (i.e. None) by default
-    pub fn max_count(&mut self, v: Option<u64>) -> &mut ConfigBuilder {
-        self.config.max_count = v;
-        self
-    }
-
-    /// Disabled (i.e. false) by default
-    pub fn no_line_number(&mut self, v: bool) -> &mut ConfigBuilder {
-        self.config.no_line_number = v;
-        self
-    }
-
-    /// Build ConfigBuilder
-    pub fn build(&self) -> Config {
-        Config {
-            ignore_case: self.config.ignore_case,
-            max_count: self.config.max_count,
-            no_line_number: self.config.no_line_number,
-        }
-    }
-}
-
 impl Cli {
-    pub fn show_matches(&mut self, mut reader: impl BufRead, writer: impl Write) -> CliResult {
-        let config = ConfigBuilder::new()
+    pub fn show_matches(self, mut reader: impl BufRead, writer: impl Write) -> CliResult {
+
+        let matcher = MatcherBuilder::new()
             .ignore_case(self.ignore_case)
             .max_count(self.max_count)
             .no_line_number(self.no_line_number)
-            .build();
+            .build(self.pattern);
 
-        if self.ignore_case {
-            self.pattern = self.pattern.to_lowercase();
-        }
-
-        // TODO: switch to builder pattern
-        let matcher = Matcher {
+        let searcher = Searcher {
             reader: &mut reader,
-            pattern: &self.pattern,
-            config: &config,
+            matcher: &matcher,
         };
 
         #[allow(clippy::match_bool)]
-        let matchertype = match self.max_count.is_some() {
-            false => MatcherType::Base(matcher),
-            true => MatcherType::MaxCount(matcher),
+        let search_type = match self.max_count.is_some() {
+            false => SearchType::Base(searcher),
+            true => SearchType::MaxCount(searcher),
         };
 
-        let matches = matchertype.find_matches();
+        let matches = search_type.search_matches();
 
         let wrt = Writer { wrt: writer };
-        wrt.print_matches(matches, &config)?;
+        wrt.print_matches(matches, &matcher.config)?;
 
         // Return () on success
         Ok(())

@@ -1,6 +1,7 @@
-use crate::cli::{CliResult, Config};
+use crate::cli::CliResult;
 use crate::ext::BStringExt;
-use crate::matcher::{LineNumbers, MatchResult, MatcherResult};
+use crate::matcher::Config;
+use crate::searcher::{LineNumbers, SearchResult, SearcherResult};
 use std::io::Write;
 
 pub struct Writer<W> {
@@ -8,7 +9,7 @@ pub struct Writer<W> {
 }
 
 impl<W: Write> Writer<W> {
-    pub fn print_matches(mut self, matcher_result: MatcherResult, config: &Config) -> CliResult {
+    pub fn print_matches(mut self, matcher_result: SearcherResult, config: &Config) -> CliResult {
         match matcher_result {
             Ok(match_result) => self
                 .print_lines_iter(match_result, config)
@@ -18,7 +19,7 @@ impl<W: Write> Writer<W> {
         Ok(())
     }
 
-    fn print_lines_iter(&mut self, match_result: MatchResult, config: &Config) -> CliResult {
+    fn print_lines_iter(&mut self, match_result: SearchResult, config: &Config) -> CliResult {
         let no_line_number = config.no_line_number;
         let matches = match_result.matches;
         let line_numbers = match_result.line_numbers;
@@ -46,8 +47,8 @@ impl<W: Write> Writer<W> {
 mod tests {
 
     use super::*;
-    use crate::cli::ConfigBuilder;
-    use crate::matcher::*;
+    use crate::matcher::MatcherBuilder;
+    use crate::searcher::*;
     use std::fs::File;
     use std::io::Cursor;
     use std::io::{Read, Seek, SeekFrom, Write};
@@ -71,24 +72,25 @@ and then stopped\
 5:made a quick run
 ";
         // Build config and matcher
-        let config = ConfigBuilder::new()
+        let pattern = "run".to_owned();
+        let matcher = MatcherBuilder::new()
             .no_line_number(false)
             .max_count(None)
-            .build();
+            .build(pattern);
 
-        let matcher = Matcher {
+        let searcher = Searcher {
             reader: &mut Cursor::new(DICKENS.as_bytes()),
-            pattern: &"run".to_owned(),
-            config: &config,
+            matcher: &matcher,
         };
-        let matches = MatcherType::Base(matcher).find_matches();
+
+        let matches = SearchType::Base(searcher).search_matches();
 
         // Write to temp file
         let mut tmpfile: File = tempfile::tempfile().unwrap();
         let wrt = Writer {
             wrt: Write::by_ref(&mut tmpfile),
         };
-        wrt.print_matches(matches, &config).unwrap();
+        wrt.print_matches(matches, &matcher.config).unwrap();
 
         // Seek to start (!)
         tmpfile.seek(SeekFrom::Start(0)).unwrap();
@@ -106,24 +108,24 @@ and then stopped\
 make a run
 ";
         // Build config and matcher
-        let config = ConfigBuilder::new()
+        let pattern = "run".to_owned();
+        let matcher = MatcherBuilder::new()
             .no_line_number(true)
             .max_count(Some(1))
-            .build();
+            .build(pattern);
 
-        let matcher = Matcher {
+        let searcher = Searcher {
             reader: &mut Cursor::new(DICKENS.as_bytes()),
-            pattern: &"run".to_owned(),
-            config: &config,
+            matcher: &matcher,
         };
-        let matches = MatcherType::MaxCount(matcher).find_matches();
+        let matches = SearchType::MaxCount(searcher).search_matches();
 
         // Write to temp file
         let mut tmpfile: File = tempfile::tempfile().unwrap();
         let wrt = Writer {
             wrt: Write::by_ref(&mut tmpfile),
         };
-        wrt.print_matches(matches, &config).unwrap();
+        wrt.print_matches(matches, &matcher.config).unwrap();
 
         // Seek to start (!)
         tmpfile.seek(SeekFrom::Start(0)).unwrap();

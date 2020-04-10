@@ -6,7 +6,7 @@ use structopt::StructOpt;
 
 fn main() -> CliResult {
     // Parse arguments
-    let mut args = Cli::from_args();
+    let args = Cli::from_args();
 
     // Read file into buffer
     let f =

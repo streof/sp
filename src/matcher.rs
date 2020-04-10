@@ -1,76 +1,75 @@
-use crate::cli::Config;
-use bstr::BString;
-use std::cmp::PartialEq;
-use std::io::BufRead;
-
-pub struct Matcher<'a, R> {
-    pub reader: R,
-    pub pattern: &'a str,
-    pub config: &'a Config,
+/// Internal configuration of our cli which can only by modified by MatcherBuilder.
+#[derive(Clone, Debug)]
+pub struct Config {
+    pub ignore_case: bool,
+    pub max_count: Option<u64>,
+    pub no_line_number: bool,
 }
 
-pub struct MatchResult {
-    pub matches: Vec<BString>,
-    pub line_numbers: LineNumbers,
+impl Default for Config {
+    fn default() -> Config {
+        Config {
+            ignore_case: false,
+            max_count: None,
+            no_line_number: false,
+        }
+    }
 }
 
-#[derive(Debug, PartialEq)]
-pub enum LineNumbers {
-    None,
-    Some(Vec<u64>),
+pub struct Matcher {
+    pub pattern: String,
+    pub config: Config,
 }
 
-pub type MatcherResult = Result<MatchResult, std::io::Error>;
-
-pub trait ReturnMatcherResult {
-    fn ret_matcher_result(matches: Vec<BString>, line_numbers: LineNumbers) -> MatcherResult;
+#[derive(Clone, Debug)]
+pub struct MatcherBuilder {
+    config: Config,
 }
 
-impl<'a, R: BufRead> ReturnMatcherResult for Matcher<'a, R> {
-    /// Convenient method for wrapping `Vec<BString>` and `LineNumbers` before
-    /// returning as `MatcherResult`
-    fn ret_matcher_result(matches: Vec<BString>, line_numbers: LineNumbers) -> MatcherResult {
-        let match_result = MatchResult {
-            matches,
-            line_numbers,
+impl Default for MatcherBuilder {
+    fn default() -> MatcherBuilder {
+        MatcherBuilder::new()
+    }
+}
+
+impl<'a> MatcherBuilder {
+    /// Create a new Config builder with a default configuration.
+    pub fn new() -> MatcherBuilder {
+        MatcherBuilder {
+            config: Config::default(),
+        }
+    }
+
+    /// Disabled (i.e. false) by default
+    pub fn ignore_case(&mut self, v: bool) -> &mut MatcherBuilder {
+        self.config.ignore_case = v;
+        self
+    }
+
+    /// Disabled (i.e. None) by default
+    pub fn max_count(&mut self, v: Option<u64>) -> &mut MatcherBuilder {
+        self.config.max_count = v;
+        self
+    }
+
+    /// Disabled (i.e. false) by default
+    pub fn no_line_number(&mut self, v: bool) -> &mut MatcherBuilder {
+        self.config.no_line_number = v;
+        self
+    }
+
+    /// Build MatcherBuilder
+    pub fn build(&self, mut pattern: String) -> Matcher {
+        if self.config.ignore_case {
+            pattern = pattern.to_lowercase();
+        }
+
+        let config = Config {
+            ignore_case: self.config.ignore_case,
+            max_count: self.config.max_count,
+            no_line_number: self.config.no_line_number,
         };
 
-        Ok(match_result)
-    }
-}
-
-pub struct Init {
-    pub matches: Vec<BString>,
-    pub line_numbers_inner: Vec<u64>,
-    pub line_number: u64,
-}
-
-impl Default for Init {
-    fn default() -> Init {
-        Init {
-            matches: vec![],
-            line_numbers_inner: vec![],
-            line_number: 0,
-        }
-    }
-}
-
-pub enum MatcherType<'a, R> {
-    Base(Matcher<'a, R>),
-    MaxCount(Matcher<'a, R>),
-}
-
-impl<'a, R: BufRead> MatcherType<'a, R> {
-    pub fn find_matches(self) -> MatcherResult {
-        match self {
-            MatcherType::Base(mut m) => {
-                use crate::base::BaseMatches;
-                Matcher::get_matches(&mut m)
-            }
-            MatcherType::MaxCount(mut m) => {
-                use crate::max_count::MaxCountMatches;
-                Matcher::get_matches(&mut m)
-            }
-        }
+        Matcher { pattern, config }
     }
 }
