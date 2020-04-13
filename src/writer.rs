@@ -83,7 +83,7 @@ and then stopped\
             matcher: &matcher,
         };
 
-        let matches = SearchType::Base(searcher).search_matches();
+        let matches = searcher.search_matches();
 
         // Write to temp file
         let mut tmpfile: File = tempfile::tempfile().unwrap();
@@ -118,7 +118,7 @@ make a run
             reader: &mut Cursor::new(DICKENS.as_bytes()),
             matcher: &matcher,
         };
-        let matches = SearchType::MaxCount(searcher).search_matches();
+        let matches = searcher.search_matches();
 
         // Write to temp file
         let mut tmpfile: File = tempfile::tempfile().unwrap();

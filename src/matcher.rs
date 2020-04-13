@@ -19,6 +19,12 @@ impl Default for Config {
 pub struct Matcher {
     pub pattern: String,
     pub config: Config,
+    pub matcher_type: MatcherType,
+}
+
+pub enum MatcherType {
+    Base,
+    MaxCount,
 }
 
 #[derive(Clone, Debug)]
@@ -70,6 +76,16 @@ impl<'a> MatcherBuilder {
             no_line_number: self.config.no_line_number,
         };
 
-        Matcher { pattern, config }
+        #[allow(clippy::match_bool)]
+        let matcher_type = match self.config.max_count.is_some() {
+            false => MatcherType::Base,
+            true => MatcherType::MaxCount,
+        };
+
+        Matcher {
+            pattern,
+            config,
+            matcher_type,
+        }
     }
 }

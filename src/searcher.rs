@@ -1,4 +1,4 @@
-use crate::matcher::Matcher;
+use crate::matcher::{Matcher, MatcherType};
 use bstr::BString;
 use std::cmp::PartialEq;
 use std::io::BufRead;
@@ -47,28 +47,24 @@ pub struct Init {
 impl Default for Init {
     fn default() -> Init {
         Init {
-            matches: vec![],
-            line_numbers_inner: vec![],
-            line_number: 0,
+            matches: Default::default(),
+            line_numbers_inner: Default::default(),
+            line_number: Default::default(),
         }
     }
 }
 
-pub enum SearchType<'a, R> {
-    Base(Searcher<'a, R>),
-    MaxCount(Searcher<'a, R>),
-}
-
-impl<'a, R: BufRead> SearchType<'a, R> {
-    pub fn search_matches(self) -> SearcherResult {
-        match self {
-            SearchType::Base(mut m) => {
+impl<'a, R: BufRead> Searcher<'a, R> {
+    pub fn search_matches(mut self) -> SearcherResult {
+        let matcher_type = &self.matcher.matcher_type;
+        match matcher_type {
+            MatcherType::Base => {
                 use crate::base::BaseSearch;
-                Searcher::get_matches(&mut m)
+                self.get_matches()
             }
-            SearchType::MaxCount(mut m) => {
+            MatcherType::MaxCount => {
                 use crate::max_count::MaxCountSearch;
-                Searcher::get_matches(&mut m)
+                self.get_matches()
             }
         }
     }

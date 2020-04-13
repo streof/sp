@@ -151,7 +151,7 @@ mod tests {
             matcher: &matcher,
         };
 
-        let searcher_result = SearchType::Base(searcher).search_matches();
+        let searcher_result = searcher.search_matches();
         let search_result = searcher_result.as_ref().unwrap();
         let matches = &search_result.matches;
         let line_numbers = &search_result.line_numbers;
@@ -175,7 +175,7 @@ mod tests {
             matcher: &matcher,
         };
 
-        let searcher_result = SearchType::Base(searcher).search_matches();
+        let searcher_result = searcher.search_matches();
         let search_result = searcher_result.as_ref().unwrap();
         let matches = &search_result.matches;
         let line_numbers = &search_result.line_numbers;
@@ -201,7 +201,7 @@ mod tests {
             matcher: &matcher,
         };
 
-        let matches = SearchType::Base(searcher).search_matches();
+        let matches = searcher.search_matches();
 
         assert_eq!(matches.as_ref().unwrap().matches.len(), 0);
     }
@@ -221,7 +221,7 @@ mod tests {
             matcher: &matcher,
         };
 
-        let matches = SearchType::Base(searcher).search_matches();
+        let matches = searcher.search_matches();
 
         assert_eq!(matches.as_ref().unwrap().matches.len(), 1);
         assert_eq!(matches.as_ref().unwrap().matches[0], &b"made a r\x00un"[..]);
@@ -242,7 +242,7 @@ mod tests {
             matcher: &matcher,
         };
 
-        let matches = SearchType::Base(searcher).search_matches();
+        let matches = searcher.search_matches();
 
         assert_eq!(matches.as_ref().unwrap().matches.len(), 1);
         assert_eq!(matches.as_ref().unwrap().matches[0], &b"made a r\x00un"[..]);
@@ -264,7 +264,7 @@ mod tests {
             matcher: &matcher,
         };
 
-        let searcher_result = SearchType::Base(searcher).search_matches();
+        let searcher_result = searcher.search_matches();
         let search_result = searcher_result.as_ref().unwrap();
         let matches = &search_result.matches;
         let line_numbers = &search_result.line_numbers;
@@ -290,7 +290,7 @@ mod tests {
             matcher: &matcher,
         };
 
-        let searcher_result = SearchType::Base(searcher).search_matches();
+        let searcher_result = searcher.search_matches();
         let search_result = searcher_result.as_ref().unwrap();
         let matches = &search_result.matches;
         let line_numbers = &search_result.line_numbers;

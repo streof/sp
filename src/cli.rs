@@ -1,4 +1,4 @@
-use crate::searcher::{Searcher, SearchType};
+use crate::searcher::Searcher;
 use crate::writer::Writer;
 use crate::matcher::MatcherBuilder;
 use std::io::{BufRead, Write};
@@ -75,13 +75,7 @@ impl Cli {
             matcher: &matcher,
         };
 
-        #[allow(clippy::match_bool)]
-        let search_type = match self.max_count.is_some() {
-            false => SearchType::Base(searcher),
-            true => SearchType::MaxCount(searcher),
-        };
-
-        let matches = search_type.search_matches();
+        let matches = searcher.search_matches();
 
         let wrt = Writer { wrt: writer };
         wrt.print_matches(matches, &matcher.config)?;
