@@ -57,6 +57,10 @@ pub struct Cli {
     /// Do not show line number which is enabled by default
     #[structopt(short, long)]
     pub no_line_number: bool,
+
+    /// Only show matches containing words starting with PATTERN
+    #[structopt(short, long)]
+    pub starts_with: bool,
 }
 
 pub type CliResult = anyhow::Result<(), anyhow::Error>;
@@ -68,6 +72,7 @@ impl Cli {
             .ignore_case(self.ignore_case)
             .max_count(self.max_count)
             .no_line_number(self.no_line_number)
+            .starts_with(self.starts_with)
             .build(self.pattern);
 
         let searcher = Searcher {

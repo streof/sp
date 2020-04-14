@@ -4,6 +4,7 @@ pub struct Config {
     pub ignore_case: bool,
     pub max_count: Option<u64>,
     pub no_line_number: bool,
+    pub starts_with: bool,
 }
 
 impl Default for Config {
@@ -12,6 +13,7 @@ impl Default for Config {
             ignore_case: false,
             max_count: None,
             no_line_number: false,
+            starts_with: false,
         }
     }
 }
@@ -25,6 +27,7 @@ pub struct Matcher {
 pub enum MatcherType {
     Base,
     MaxCount,
+    StartsWith,
 }
 
 #[derive(Clone, Debug)]
@@ -64,6 +67,12 @@ impl<'a> MatcherBuilder {
         self
     }
 
+    /// Disabled (i.e. false) by default
+    pub fn starts_with(&mut self, v: bool) -> &mut MatcherBuilder {
+        self.config.starts_with = v;
+        self
+    }
+
     /// Build MatcherBuilder
     pub fn build(&self, mut pattern: String) -> Matcher {
         if self.config.ignore_case {
@@ -74,12 +83,14 @@ impl<'a> MatcherBuilder {
             ignore_case: self.config.ignore_case,
             max_count: self.config.max_count,
             no_line_number: self.config.no_line_number,
+            starts_with: self.config.starts_with,
         };
 
         #[allow(clippy::match_bool)]
-        let matcher_type = match self.config.max_count.is_some() {
-            false => MatcherType::Base,
-            true => MatcherType::MaxCount,
+        let matcher_type = match (self.config.starts_with, self.config.max_count.is_some()) {
+            (true, _) => MatcherType::StartsWith,
+            (false, true) => MatcherType::MaxCount,
+            (false, false) => MatcherType::Base,
         };
 
         Matcher {

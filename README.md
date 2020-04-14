@@ -26,6 +26,7 @@ OPTIONS:
     -i, --ignore-case        Case insensitive search
     -m, --max-count <NUM>    Limit number of shown matches
     -n, --no-line-number     Do not show line number which is enabled by default
+    -s, --starts-with        Only show matches containing words starting with PATTERN
     -V, --version            Prints version information
 ```
 
