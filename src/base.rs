@@ -1,4 +1,4 @@
-use crate::ext::ByteSliceExt;
+use crate::search_inner::*;
 use crate::searcher::*;
 use bstr::{io::BufReadExt, ByteSlice};
 use std::io::BufRead;
@@ -20,90 +20,80 @@ impl<'a, R: BufRead> Base for Searcher<'a, R> {
     fn no_line_number(&mut self) -> SearcherResult {
         let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
 
-        let Init { mut matches, .. } = Init::default();
+        let mut sir = SearchInnerResult::default();
 
         reader.for_byte_line_with_terminator(|line| {
-            if line.contains_str(pattern) {
-                matches.push(line.trim_terminator());
-            }
+            sir.check_and_store_nln(pattern, line, check_contains);
             Ok(true)
         })?;
 
-        Self::ret_searcher_result(matches, LineNumbers::None)
+        Self::ret_searcher_result(sir.matches, LineNumbers::None)
     }
 
     fn no_line_number_caseless(&mut self) -> SearcherResult {
         let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
 
-        let Init { mut matches, .. } = Init::default();
+        let mut sir = SearchInnerResult::default();
 
         reader.for_byte_line_with_terminator(|line| {
             if line.is_ascii() {
-                if line.to_ascii_lowercase().contains_str(pattern) {
-                    matches.push(line.trim_terminator());
-                }
+                sir.check_and_store_separate_nln(
+                    pattern,
+                    &line.to_ascii_lowercase(),
+                    line,
+                    check_contains,
+                );
             } else {
                 let mut buf = Default::default();
                 line.to_lowercase_into(&mut buf);
-                if buf.contains_str(pattern) {
-                    matches.push(line.trim_terminator());
-                }
+                sir.check_and_store_separate_nln(pattern, &buf, line, check_contains);
             }
             Ok(true)
         })?;
 
-        Self::ret_searcher_result(matches, LineNumbers::None)
+        Self::ret_searcher_result(sir.matches, LineNumbers::None)
     }
 
     fn line_number(&mut self) -> SearcherResult {
         let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
 
-        let Init {
-            mut matches,
-            mut line_numbers_inner,
-            mut line_number,
-        } = Init::default();
+        let mut line_number = 0;
+        let mut sir = SearchInnerResult::default();
 
         reader.for_byte_line_with_terminator(|line| {
             line_number += 1;
-            if line.contains_str(pattern) {
-                matches.push(line.trim_terminator());
-                line_numbers_inner.push(line_number);
-            }
+            sir.check_and_store(pattern, line_number, line, check_contains);
             Ok(true)
         })?;
 
-        Self::ret_searcher_result(matches, LineNumbers::Some(line_numbers_inner))
+        Self::ret_searcher_result(sir.matches, LineNumbers::Some(sir.line_numbers))
     }
 
     fn line_number_caseless(&mut self) -> SearcherResult {
         let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
 
-        let Init {
-            mut matches,
-            mut line_numbers_inner,
-            mut line_number,
-        } = Init::default();
+        let mut line_number = 0;
+        let mut sir = SearchInnerResult::default();
 
         reader.for_byte_line_with_terminator(|line| {
             line_number += 1;
             if line.is_ascii() {
-                if line.to_ascii_lowercase().contains_str(pattern) {
-                    matches.push(line.trim_terminator());
-                    line_numbers_inner.push(line_number);
-                }
+                sir.check_and_store_separate(
+                    pattern,
+                    line_number,
+                    &line.to_ascii_lowercase(),
+                    line,
+                    check_contains,
+                );
             } else {
                 let mut buf = Default::default();
                 line.to_lowercase_into(&mut buf);
-                if buf.contains_str(pattern) {
-                    matches.push(line.trim_terminator());
-                    line_numbers_inner.push(line_number);
-                }
+                sir.check_and_store_separate(pattern, line_number, &buf, line, check_contains);
             }
             Ok(true)
         })?;
 
-        Self::ret_searcher_result(matches, LineNumbers::Some(line_numbers_inner))
+        Self::ret_searcher_result(sir.matches, LineNumbers::Some(sir.line_numbers))
     }
 }
 

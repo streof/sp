@@ -1,4 +1,4 @@
-use crate::ext::ByteSliceExt;
+use crate::search_inner::*;
 use crate::searcher::*;
 use bstr::{io::BufReadExt, ByteSlice};
 use std::io::BufRead;
@@ -22,20 +22,17 @@ impl<'a, R: BufRead> MaxCount for Searcher<'a, R> {
             self.matcher.config.max_count.unwrap(),
         );
 
-        let Init { mut matches, .. } = Init::default();
+        let mut sir = SearchInnerResult::default();
 
         reader.for_byte_line_with_terminator(|line| {
             if matches_left == 0 as u64 {
                 return Ok(true);
             }
-            if line.contains_str(pattern) {
-                matches_left -= 1;
-                matches.push(line.trim_terminator());
-            }
+            sir.check_and_store_nln_max_count(pattern, line, &mut matches_left, check_contains);
             Ok(true)
         })?;
 
-        Self::ret_searcher_result(matches, LineNumbers::None)
+        Self::ret_searcher_result(sir.matches, LineNumbers::None)
     }
 
     fn no_line_number_caseless(&mut self) -> SearcherResult {
@@ -45,29 +42,35 @@ impl<'a, R: BufRead> MaxCount for Searcher<'a, R> {
             self.matcher.config.max_count.unwrap(),
         );
 
-        let Init { mut matches, .. } = Init::default();
+        let mut sir = SearchInnerResult::default();
 
         reader.for_byte_line_with_terminator(|line| {
             if matches_left == 0 as u64 {
                 return Ok(true);
             }
             if line.is_ascii() {
-                if line.to_ascii_lowercase().contains_str(pattern) {
-                    matches_left -= 1;
-                    matches.push(line.trim_terminator());
-                }
+                sir.check_and_store_separate_nln_max_count(
+                    pattern,
+                    &line.to_ascii_lowercase(),
+                    line,
+                    &mut matches_left,
+                    check_contains,
+                );
             } else {
                 let mut buf = Default::default();
                 line.to_lowercase_into(&mut buf);
-                if buf.contains_str(pattern) {
-                    matches_left -= 1;
-                    matches.push(line.trim_terminator());
-                }
+                sir.check_and_store_separate_nln_max_count(
+                    pattern,
+                    &buf,
+                    line,
+                    &mut matches_left,
+                    check_contains,
+                );
             }
             Ok(true)
         })?;
 
-        Self::ret_searcher_result(matches, LineNumbers::None)
+        Self::ret_searcher_result(sir.matches, LineNumbers::None)
     }
 
     fn line_number(&mut self) -> SearcherResult {
@@ -77,26 +80,25 @@ impl<'a, R: BufRead> MaxCount for Searcher<'a, R> {
             self.matcher.config.max_count.unwrap(),
         );
 
-        let Init {
-            mut matches,
-            mut line_numbers_inner,
-            mut line_number,
-        } = Init::default();
+        let mut line_number = 0;
+        let mut sir = SearchInnerResult::default();
 
         reader.for_byte_line_with_terminator(|line| {
             if matches_left == 0 as u64 {
                 return Ok(true);
             }
             line_number += 1;
-            if line.contains_str(pattern) {
-                matches_left -= 1;
-                matches.push(line.trim_terminator());
-                line_numbers_inner.push(line_number);
-            }
+            sir.check_and_store_max_count(
+                pattern,
+                line_number,
+                line,
+                &mut matches_left,
+                check_contains,
+            );
             Ok(true)
         })?;
 
-        Self::ret_searcher_result(matches, LineNumbers::Some(line_numbers_inner))
+        Self::ret_searcher_result(sir.matches, LineNumbers::Some(sir.line_numbers))
     }
 
     fn line_number_caseless(&mut self) -> SearcherResult {
@@ -106,11 +108,8 @@ impl<'a, R: BufRead> MaxCount for Searcher<'a, R> {
             self.matcher.config.max_count.unwrap(),
         );
 
-        let Init {
-            mut matches,
-            mut line_numbers_inner,
-            mut line_number,
-        } = Init::default();
+        let mut line_number = 0;
+        let mut sir = SearchInnerResult::default();
 
         reader.for_byte_line_with_terminator(|line| {
             if matches_left == 0 as u64 {
@@ -118,24 +117,30 @@ impl<'a, R: BufRead> MaxCount for Searcher<'a, R> {
             }
             line_number += 1;
             if line.is_ascii() {
-                if line.to_ascii_lowercase().contains_str(pattern) {
-                    matches_left -= 1;
-                    matches.push(line.trim_terminator());
-                    line_numbers_inner.push(line_number);
-                }
+                sir.check_and_store_separate_max_count(
+                    pattern,
+                    line_number,
+                    &line.to_ascii_lowercase(),
+                    line,
+                    &mut matches_left,
+                    check_contains,
+                );
             } else {
                 let mut buf = Default::default();
                 line.to_lowercase_into(&mut buf);
-                if buf.contains_str(pattern) {
-                    matches_left -= 1;
-                    matches.push(line.trim_terminator());
-                    line_numbers_inner.push(line_number);
-                }
+                sir.check_and_store_separate_max_count(
+                    pattern,
+                    line_number,
+                    &buf,
+                    line,
+                    &mut matches_left,
+                    check_contains,
+                );
             }
             Ok(true)
         })?;
 
-        Self::ret_searcher_result(matches, LineNumbers::Some(line_numbers_inner))
+        Self::ret_searcher_result(sir.matches, LineNumbers::Some(sir.line_numbers))
     }
 }
 

@@ -1,3 +1,4 @@
+use crate::search_inner::*;
 use crate::searcher::*;
 use bstr::{io::BufReadExt, ByteSlice};
 use std::io::BufRead;
@@ -28,7 +29,7 @@ impl<'a, R: BufRead> StartsWith for Searcher<'a, R> {
             line_number += 1;
 
             if line.contains_str(pattern) {
-                sir.check_and_store(pattern, line_number, line);
+                sir.check_and_store(pattern, line_number, line, check_starts_with);
             }
             Ok(true)
         })?;
@@ -47,13 +48,25 @@ impl<'a, R: BufRead> StartsWith for Searcher<'a, R> {
             if line.is_ascii() {
                 let line_lower = line.to_ascii_lowercase();
                 if line_lower.contains_str(pattern) {
-                    sir.check_and_store_separate(pattern, line_number, &line_lower, line);
+                    sir.check_and_store_separate(
+                        pattern,
+                        line_number,
+                        &line_lower,
+                        line,
+                        check_starts_with,
+                    );
                 }
             } else {
                 let mut buf = Default::default();
                 line.to_lowercase_into(&mut buf);
                 if buf.contains_str(pattern) {
-                    sir.check_and_store_separate(pattern, line_number, &buf, line);
+                    sir.check_and_store_separate(
+                        pattern,
+                        line_number,
+                        &buf,
+                        line,
+                        check_starts_with,
+                    );
                 }
             }
             Ok(true)
@@ -78,7 +91,13 @@ impl<'a, R: BufRead> StartsWith for Searcher<'a, R> {
             }
             line_number += 1;
             if line.contains_str(pattern) {
-                sir.check_and_store_max_count(pattern, line_number, line, &mut matches_left);
+                sir.check_and_store_max_count(
+                    pattern,
+                    line_number,
+                    line,
+                    &mut matches_left,
+                    check_starts_with,
+                );
             }
             Ok(true)
         })?;
@@ -110,6 +129,7 @@ impl<'a, R: BufRead> StartsWith for Searcher<'a, R> {
                         &line_lower,
                         line,
                         &mut matches_left,
+                        check_starts_with,
                     );
                 }
             } else {
@@ -122,6 +142,7 @@ impl<'a, R: BufRead> StartsWith for Searcher<'a, R> {
                         &buf,
                         line,
                         &mut matches_left,
+                        check_starts_with,
                     );
                 }
             }
