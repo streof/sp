@@ -57,7 +57,7 @@ impl<'a, R: BufRead> MaxCount for Searcher<'a, R> {
                     matches.push(line.trim_terminator());
                 }
             } else {
-                let mut buf = vec![];
+                let mut buf = Default::default();
                 line.to_lowercase_into(&mut buf);
                 if buf.contains_str(pattern) {
                     matches_left -= 1;
@@ -124,7 +124,7 @@ impl<'a, R: BufRead> MaxCount for Searcher<'a, R> {
                     line_numbers_inner.push(line_number);
                 }
             } else {
-                let mut buf = vec![];
+                let mut buf = Default::default();
                 line.to_lowercase_into(&mut buf);
                 if buf.contains_str(pattern) {
                     matches_left -= 1;

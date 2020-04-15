@@ -42,7 +42,6 @@ impl<'a, R: BufRead> StartsWith for Searcher<'a, R> {
         let mut line_number = 0;
         let mut sir = SearchInnerResult::default();
 
-        #[allow(clippy::collapsible_if)]
         reader.for_byte_line_with_terminator(|line| {
             line_number += 1;
             if line.is_ascii() {
@@ -51,7 +50,7 @@ impl<'a, R: BufRead> StartsWith for Searcher<'a, R> {
                     sir.check_and_store_separate(pattern, line_number, &line_lower, line);
                 }
             } else {
-                let mut buf = vec![];
+                let mut buf = Default::default();
                 line.to_lowercase_into(&mut buf);
                 if buf.contains_str(pattern) {
                     sir.check_and_store_separate(pattern, line_number, &buf, line);
@@ -73,7 +72,6 @@ impl<'a, R: BufRead> StartsWith for Searcher<'a, R> {
         let mut line_number = 0;
         let mut sir = SearchInnerResult::default();
 
-        #[allow(clippy::collapsible_if)]
         reader.for_byte_line_with_terminator(|line| {
             if matches_left == 0 as u64 {
                 return Ok(true);
@@ -98,7 +96,6 @@ impl<'a, R: BufRead> StartsWith for Searcher<'a, R> {
         let mut line_number = 0;
         let mut sir = SearchInnerResult::default();
 
-        #[allow(clippy::collapsible_if)]
         reader.for_byte_line_with_terminator(|line| {
             if matches_left == 0 as u64 {
                 return Ok(true);
