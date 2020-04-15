@@ -3,6 +3,7 @@ pub mod cli;
 pub mod ext;
 pub mod matcher;
 pub mod max_count;
+pub mod search_inner;
 pub mod searcher;
 pub mod starts_with;
 pub mod writer;
