@@ -139,6 +139,12 @@ pub fn check_starts_with(line: &[u8], pattern: &str) -> bool {
         .any(|word| word.starts_with_str(pattern))
 }
 
+pub fn check_ends_with(line: &[u8], pattern: &str) -> bool {
+    line.trim_terminator()
+        .split_str(" ")
+        .any(|word| word.ends_with_str(pattern))
+}
+
 pub fn check_contains(line: &[u8], pattern: &str) -> bool {
     line.contains_str(pattern)
 }

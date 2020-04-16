@@ -33,6 +33,10 @@ impl<'a, R: BufRead> Searcher<'a, R> {
                 use crate::base::BaseSearch;
                 self.get_matches()
             }
+            MatcherType::EndsWith => {
+                use crate::ends_with::EndsWithSearch;
+                self.get_matches()
+            }
             MatcherType::MaxCount => {
                 use crate::max_count::MaxCountSearch;
                 self.get_matches()

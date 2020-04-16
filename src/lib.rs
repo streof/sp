@@ -1,6 +1,8 @@
 pub mod base;
 pub mod cli;
+pub mod ends_with;
 pub mod ext;
+pub mod gen_check;
 pub mod matcher;
 pub mod max_count;
 pub mod search_inner;

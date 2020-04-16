@@ -46,6 +46,10 @@ pub struct Cli {
     )]
     pub path: PathBuf,
 
+    /// Only show matches containing words ending with PATTERN
+    #[structopt(short, long)]
+    pub ends_with: bool,
+
     /// Case insensitive search
     #[structopt(short, long)]
     pub ignore_case: bool,
@@ -69,6 +73,7 @@ impl Cli {
     pub fn show_matches(self, mut reader: impl BufRead, writer: impl Write) -> CliResult {
 
         let matcher = MatcherBuilder::new()
+            .ends_with(self.ends_with)
             .ignore_case(self.ignore_case)
             .max_count(self.max_count)
             .no_line_number(self.no_line_number)

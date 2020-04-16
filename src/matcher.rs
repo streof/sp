@@ -1,6 +1,7 @@
 /// Internal configuration of our cli which can only by modified by MatcherBuilder.
 #[derive(Clone, Debug)]
 pub struct Config {
+    pub ends_with: bool,
     pub ignore_case: bool,
     pub max_count: Option<u64>,
     pub no_line_number: bool,
@@ -10,6 +11,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Config {
         Config {
+            ends_with: false,
             ignore_case: false,
             max_count: None,
             no_line_number: false,
@@ -26,6 +28,7 @@ pub struct Matcher {
 
 pub enum MatcherType {
     Base,
+    EndsWith,
     MaxCount,
     StartsWith,
 }
@@ -47,6 +50,12 @@ impl<'a> MatcherBuilder {
         MatcherBuilder {
             config: Config::default(),
         }
+    }
+
+    /// Disabled (i.e. false) by default
+    pub fn ends_with(&mut self, v: bool) -> &mut MatcherBuilder {
+        self.config.ends_with = v;
+        self
     }
 
     /// Disabled (i.e. false) by default
@@ -80,6 +89,7 @@ impl<'a> MatcherBuilder {
         }
 
         let config = Config {
+            ends_with: self.config.ends_with,
             ignore_case: self.config.ignore_case,
             max_count: self.config.max_count,
             no_line_number: self.config.no_line_number,
@@ -87,10 +97,17 @@ impl<'a> MatcherBuilder {
         };
 
         #[allow(clippy::match_bool)]
-        let matcher_type = match (self.config.starts_with, self.config.max_count.is_some()) {
-            (true, _) => MatcherType::StartsWith,
-            (false, true) => MatcherType::MaxCount,
-            (false, false) => MatcherType::Base,
+        let matcher_type = match (
+            self.config.ends_with,
+            self.config.starts_with,
+            self.config.max_count.is_some(),
+        ) {
+            // TODO: Fix this by implementing exact word matching
+            (true, true, _) => MatcherType::Base,
+            (true, false, _) => MatcherType::EndsWith,
+            (false, true, _) => MatcherType::StartsWith,
+            (false, false, true) => MatcherType::MaxCount,
+            (false, false, false) => MatcherType::Base,
         };
 
         Matcher {
