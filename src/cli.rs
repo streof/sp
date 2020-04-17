@@ -46,7 +46,7 @@ pub struct Cli {
     )]
     pub path: PathBuf,
 
-    /// Only show matches containing words ending with PATTERN
+    /// Only show matches containing fields ending with PATTERN
     #[structopt(short, long)]
     pub ends_with: bool,
 
@@ -62,7 +62,7 @@ pub struct Cli {
     #[structopt(short, long)]
     pub no_line_number: bool,
 
-    /// Only show matches containing words starting with PATTERN
+    /// Only show matches containing fields starting with PATTERN
     #[structopt(short, long)]
     pub starts_with: bool,
 }

@@ -35,7 +35,7 @@ mod tests {
     use crate::matcher::MatcherBuilder;
     use std::io::Cursor;
 
-    const LINE: &str = "again\ngain\na\x00nd, gain\n& AΓain\nGain";
+    const LINE: &str = "again\na\tgain\na\x00nd, gain\n&\u{2003}AΓain\nGain";
     const LINE2: &str = "again\nGain\na\x00nd, gain\n& AΓain\nGain";
 
     #[test]
@@ -62,7 +62,7 @@ mod tests {
         let line_number_inner: Vec<u64> = vec![2, 3];
 
         assert!(matches.len() == 2);
-        assert_eq!(matches[0], &b"gain"[..]);
+        assert_eq!(matches[0], &b"a\tgain"[..]);
         assert_eq!(matches[1], &b"a\x00nd, gain"[..]);
         assert_eq!(line_numbers, &LineNumbers::Some(line_number_inner));
     }
@@ -91,7 +91,7 @@ mod tests {
         let line_number_inner: Vec<u64> = vec![4];
 
         assert!(matches.len() == 1);
-        assert_eq!(matches[0], "& AΓain".as_bytes());
+        assert_eq!(matches[0], "&\u{2003}AΓain".as_bytes());
         assert_eq!(line_numbers, &LineNumbers::Some(line_number_inner));
     }
 
@@ -117,7 +117,7 @@ mod tests {
         let line_numbers = &search_result.line_numbers;
 
         assert!(matches.len() == 3);
-        assert_eq!(matches[0], &b"gain"[..]);
+        assert_eq!(matches[0], &b"a\tgain"[..]);
         assert_eq!(matches[1], &b"a\x00nd, gain"[..]);
         assert_eq!(matches[2], &b"Gain"[..]);
         assert_eq!(line_numbers, &LineNumbers::None);
@@ -145,7 +145,7 @@ mod tests {
         let line_numbers = &search_result.line_numbers;
 
         assert!(matches.len() == 2);
-        assert_eq!(matches[0], &b"gain"[..]);
+        assert_eq!(matches[0], &b"a\tgain"[..]);
         assert_eq!(matches[1], &b"a\x00nd, gain"[..]);
         assert_eq!(line_numbers, &LineNumbers::None);
     }

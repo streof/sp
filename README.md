@@ -22,12 +22,12 @@ ARGS:
     <PATH>       A file to search
 
 OPTIONS:
-    -e, --ends-with          Only show matches containing words ending with PATTERN
+    -e, --ends-with          Only show matches containing fields ending with PATTERN
     -h, --help               Prints help information
     -i, --ignore-case        Case insensitive search
     -m, --max-count <NUM>    Limit number of shown matches
     -n, --no-line-number     Do not show line number which is enabled by default
-    -s, --starts-with        Only show matches containing words starting with PATTERN
+    -s, --starts-with        Only show matches containing fields starting with PATTERN
     -V, --version            Prints version information
 ```
 

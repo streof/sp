@@ -134,20 +134,15 @@ impl SearchInnerResult {
 }
 
 pub fn check_starts_with(line: &[u8], pattern: &str) -> bool {
-    line.trim_terminator()
-        .split_str(" ")
-        .any(|word| word.starts_with_str(pattern))
+    line.fields().any(|word| word.starts_with_str(pattern))
 }
 
 pub fn check_ends_with(line: &[u8], pattern: &str) -> bool {
-    line.trim_terminator()
-        .split_str(" ")
-        .any(|word| word.ends_with_str(pattern))
+    line.fields().any(|word| word.ends_with_str(pattern))
 }
 
 pub fn check_starts_ends_with(line: &[u8], pattern: &str) -> bool {
-    line.trim_terminator()
-        .split_str(" ")
+    line.fields()
         .any(|word| word.starts_with_str(pattern) && word.ends_with_str(pattern))
 }
 
