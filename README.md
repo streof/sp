@@ -22,6 +22,7 @@ ARGS:
     <PATH>       A file to search
 
 OPTIONS:
+    -e, --ends-with          Only show matches containing words ending with PATTERN
     -h, --help               Prints help information
     -i, --ignore-case        Case insensitive search
     -m, --max-count <NUM>    Limit number of shown matches

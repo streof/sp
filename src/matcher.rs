@@ -30,6 +30,7 @@ pub enum MatcherType {
     Base,
     EndsWith,
     MaxCount,
+    StartsEndsWith,
     StartsWith,
 }
 
@@ -103,7 +104,7 @@ impl<'a> MatcherBuilder {
             self.config.max_count.is_some(),
         ) {
             // TODO: Fix this by implementing exact word matching
-            (true, true, _) => MatcherType::Base,
+            (true, true, _) => MatcherType::StartsEndsWith,
             (true, false, _) => MatcherType::EndsWith,
             (false, true, _) => MatcherType::StartsWith,
             (false, false, true) => MatcherType::MaxCount,
