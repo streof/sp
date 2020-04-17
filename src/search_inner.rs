@@ -149,3 +149,7 @@ pub fn check_starts_ends_with(line: &[u8], pattern: &str) -> bool {
 pub fn check_contains(line: &[u8], pattern: &str) -> bool {
     line.contains_str(pattern)
 }
+
+pub fn check_words(line: &[u8], pattern: &str) -> bool {
+    line.trim_terminator().words().any(|word| word == pattern)
+}

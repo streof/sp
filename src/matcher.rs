@@ -6,6 +6,7 @@ pub struct Config {
     pub max_count: Option<u64>,
     pub no_line_number: bool,
     pub starts_with: bool,
+    pub words: bool,
 }
 
 impl Default for Config {
@@ -16,6 +17,7 @@ impl Default for Config {
             max_count: None,
             no_line_number: false,
             starts_with: false,
+            words: false,
         }
     }
 }
@@ -32,6 +34,7 @@ pub enum MatcherType {
     MaxCount,
     StartsEndsWith,
     StartsWith,
+    Words,
 }
 
 #[derive(Clone, Debug)]
@@ -83,6 +86,12 @@ impl<'a> MatcherBuilder {
         self
     }
 
+    /// Disabled (i.e. false) by default
+    pub fn words(&mut self, v: bool) -> &mut MatcherBuilder {
+        self.config.words = v;
+        self
+    }
+
     /// Build MatcherBuilder
     pub fn build(&self, mut pattern: String) -> Matcher {
         if self.config.ignore_case {
@@ -95,20 +104,21 @@ impl<'a> MatcherBuilder {
             max_count: self.config.max_count,
             no_line_number: self.config.no_line_number,
             starts_with: self.config.starts_with,
+            words: self.config.words,
         };
 
-        #[allow(clippy::match_bool)]
         let matcher_type = match (
+            self.config.words,
             self.config.ends_with,
             self.config.starts_with,
             self.config.max_count.is_some(),
         ) {
-            // TODO: Fix this by implementing exact word matching
-            (true, true, _) => MatcherType::StartsEndsWith,
-            (true, false, _) => MatcherType::EndsWith,
-            (false, true, _) => MatcherType::StartsWith,
-            (false, false, true) => MatcherType::MaxCount,
-            (false, false, false) => MatcherType::Base,
+            (true, _, _, _) => MatcherType::Words,
+            (false, true, true, _) => MatcherType::StartsEndsWith,
+            (false, true, false, _) => MatcherType::EndsWith,
+            (false, false, true, _) => MatcherType::StartsWith,
+            (false, false, false, true) => MatcherType::MaxCount,
+            (false, false, false, false) => MatcherType::Base,
         };
 
         Matcher {

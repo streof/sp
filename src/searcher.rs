@@ -49,6 +49,10 @@ impl<'a, R: BufRead> Searcher<'a, R> {
                 use crate::starts_ends_with::StartsEndsWithSearch;
                 self.get_matches()
             }
+            MatcherType::Words => {
+                use crate::words::WordsSearch;
+                self.get_matches()
+            }
         }
     }
 }

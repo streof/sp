@@ -29,6 +29,7 @@ OPTIONS:
     -n, --no-line-number     Do not show line number which is enabled by default
     -s, --starts-with        Only show matches containing fields starting with PATTERN
     -V, --version            Prints version information
+    -w, --words              Whole words search (i.e. non-word characters are stripped)
 ```
 
 

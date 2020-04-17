@@ -9,4 +9,5 @@ pub mod search_inner;
 pub mod searcher;
 pub mod starts_ends_with;
 pub mod starts_with;
+pub mod words;
 pub mod writer;
