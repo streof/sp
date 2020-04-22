@@ -1,14 +1,14 @@
 use crate::gen_check::GenCheck;
-use crate::search_inner::*;
-use crate::searcher::*;
+use crate::results::{check_ends_with, GenResult};
+use crate::searcher::Searcher;
 use std::io::BufRead;
 
 pub trait EndsWithSearch {
-    fn get_matches(&mut self) -> SearcherResult;
+    fn get_matches(&mut self) -> GenResult;
 }
 
 impl<'a, R: BufRead> EndsWithSearch for Searcher<'a, R> {
-    fn get_matches(&mut self) -> SearcherResult {
+    fn get_matches(&mut self) -> GenResult {
         let (ignore_case, max_count, no_line_number) = (
             self.matcher.config.ignore_case,
             self.matcher.config.max_count,
@@ -33,6 +33,7 @@ mod tests {
     use super::*;
 
     use crate::matcher::MatcherBuilder;
+    use crate::results::{GenInnerResult, LineNumbers};
     use std::io::Cursor;
 
     const LINE: &str = "againn\ngain\na\x00nd, again\n& AΓain\nGain";
@@ -55,16 +56,19 @@ mod tests {
             matcher: &matcher,
         };
 
-        let searcher_result = searcher.search_matches();
-        let search_result = searcher_result.as_ref().unwrap();
-        let matches = &search_result.matches;
-        let line_numbers = &search_result.line_numbers;
-        let line_number_inner: Vec<u64> = vec![2, 3];
+        let gen_result = searcher.search_matches();
+        let gen_inner_result = gen_result.as_ref().unwrap();
 
-        assert!(matches.len() == 2);
-        assert_eq!(matches[0], &b"gain"[..]);
-        assert_eq!(matches[1], &b"a\x00nd, again"[..]);
-        assert_eq!(line_numbers, &LineNumbers::Some(line_number_inner));
+        if let GenInnerResult::Search(search_result) = gen_inner_result {
+            let matches = &search_result.matches;
+            let line_numbers = &search_result.line_numbers;
+            let line_number_inner: Vec<u64> = vec![2, 3];
+
+            assert!(matches.len() == 2);
+            assert_eq!(matches[0], &b"gain"[..]);
+            assert_eq!(matches[1], &b"a\x00nd, again"[..]);
+            assert_eq!(line_numbers, &LineNumbers::Some(line_number_inner));
+        }
     }
 
     #[test]
@@ -84,15 +88,18 @@ mod tests {
             matcher: &matcher,
         };
 
-        let searcher_result = searcher.search_matches();
-        let search_result = searcher_result.as_ref().unwrap();
-        let matches = &search_result.matches;
-        let line_numbers = &search_result.line_numbers;
-        let line_number_inner: Vec<u64> = vec![4];
+        let gen_result = searcher.search_matches();
+        let gen_inner_result = gen_result.as_ref().unwrap();
 
-        assert!(matches.len() == 1);
-        assert_eq!(matches[0], "& AΓain".as_bytes());
-        assert_eq!(line_numbers, &LineNumbers::Some(line_number_inner));
+        if let GenInnerResult::Search(search_result) = gen_inner_result {
+            let matches = &search_result.matches;
+            let line_numbers = &search_result.line_numbers;
+            let line_number_inner: Vec<u64> = vec![4];
+
+            assert!(matches.len() == 1);
+            assert_eq!(matches[0], "& AΓain".as_bytes());
+            assert_eq!(line_numbers, &LineNumbers::Some(line_number_inner));
+        }
     }
 
     #[test]
@@ -111,16 +118,19 @@ mod tests {
             matcher: &matcher,
         };
 
-        let searcher_result = searcher.search_matches();
-        let search_result = searcher_result.as_ref().unwrap();
-        let matches = &search_result.matches;
-        let line_numbers = &search_result.line_numbers;
+        let gen_result = searcher.search_matches();
+        let gen_inner_result = gen_result.as_ref().unwrap();
 
-        assert!(matches.len() == 3);
-        assert_eq!(matches[0], &b"Gain"[..]);
-        assert_eq!(matches[1], &b"a\x00nd, aGain"[..]);
-        assert_eq!(matches[2], &b"Gain"[..]);
-        assert_eq!(line_numbers, &LineNumbers::None);
+        if let GenInnerResult::Search(search_result) = gen_inner_result {
+            let matches = &search_result.matches;
+            let line_numbers = &search_result.line_numbers;
+
+            assert!(matches.len() == 3);
+            assert_eq!(matches[0], &b"Gain"[..]);
+            assert_eq!(matches[1], &b"a\x00nd, aGain"[..]);
+            assert_eq!(matches[2], &b"Gain"[..]);
+            assert_eq!(line_numbers, &LineNumbers::None);
+        };
     }
 
     #[test]
@@ -139,14 +149,17 @@ mod tests {
             matcher: &matcher,
         };
 
-        let searcher_result = searcher.search_matches();
-        let search_result = searcher_result.as_ref().unwrap();
-        let matches = &search_result.matches;
-        let line_numbers = &search_result.line_numbers;
+        let gen_result = searcher.search_matches();
+        let gen_inner_result = gen_result.as_ref().unwrap();
 
-        assert!(matches.len() == 1);
-        assert_eq!(matches[0], &b"gain"[..]);
-        assert_eq!(line_numbers, &LineNumbers::None);
+        if let GenInnerResult::Search(search_result) = gen_inner_result {
+            let matches = &search_result.matches;
+            let line_numbers = &search_result.line_numbers;
+
+            assert!(matches.len() == 1);
+            assert_eq!(matches[0], &b"gain"[..]);
+            assert_eq!(line_numbers, &LineNumbers::None);
+        };
     }
 
     #[test]
@@ -166,14 +179,17 @@ mod tests {
             matcher: &matcher,
         };
 
-        let searcher_result = searcher.search_matches();
-        let search_result = searcher_result.as_ref().unwrap();
-        let matches = &search_result.matches;
-        let line_numbers = &search_result.line_numbers;
+        let gen_result = searcher.search_matches();
+        let gen_inner_result = gen_result.as_ref().unwrap();
 
-        assert!(matches.len() == 2);
-        assert_eq!(matches[0], &b"Gain"[..]);
-        assert_eq!(matches[1], &b"a\x00nd, aGain"[..]);
-        assert_eq!(line_numbers, &LineNumbers::None);
+        if let GenInnerResult::Search(search_result) = gen_inner_result {
+            let matches = &search_result.matches;
+            let line_numbers = &search_result.line_numbers;
+
+            assert!(matches.len() == 2);
+            assert_eq!(matches[0], &b"Gain"[..]);
+            assert_eq!(matches[1], &b"a\x00nd, aGain"[..]);
+            assert_eq!(line_numbers, &LineNumbers::None);
+        };
     }
 }

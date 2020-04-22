@@ -1,6 +1,26 @@
 use crate::ext::ByteSliceExt;
 use bstr::{BString, ByteSlice};
 
+#[derive(Debug, PartialEq)]
+pub enum LineNumbers {
+    None,
+    Some(Vec<u64>),
+}
+
+pub struct SearchResult {
+    pub matches: Vec<BString>,
+    pub line_numbers: LineNumbers,
+}
+
+pub enum GenInnerResult {
+    Search(SearchResult),
+    Count(CountResult),
+}
+
+pub type SearcherResult = Result<SearchResult, std::io::Error>;
+pub type CounterResult = Result<CountResult, std::io::Error>;
+pub type GenResult = Result<GenInnerResult, std::io::Error>;
+
 #[derive(Debug)]
 pub struct SearchInnerResult {
     pub matches: Vec<BString>,
@@ -12,6 +32,62 @@ impl Default for SearchInnerResult {
         SearchInnerResult {
             matches: Default::default(),
             line_numbers: Default::default(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct CountResult {
+    pub count: u64,
+}
+
+impl Default for CountResult {
+    fn default() -> CountResult {
+        CountResult {
+            count: Default::default(),
+        }
+    }
+}
+
+pub trait Upcast {
+    type Type;
+
+    fn upcast(self) -> Self::Type;
+}
+
+impl Upcast for SearchInnerResult {
+    type Type = GenResult;
+    fn upcast(self) -> Self::Type {
+        let match_result = if self.line_numbers.is_empty() {
+            SearchResult {
+                matches: self.matches,
+                line_numbers: LineNumbers::None,
+            }
+        } else {
+            SearchResult {
+                matches: self.matches,
+                line_numbers: LineNumbers::Some(self.line_numbers),
+            }
+        };
+
+        Ok(GenInnerResult::Search(match_result))
+    }
+}
+
+impl Upcast for CountResult {
+    type Type = GenResult;
+    fn upcast(self) -> Self::Type {
+        Ok(GenInnerResult::Count(self))
+    }
+}
+
+impl CountResult {
+    pub fn check_and_add<F>(&mut self, pattern: &str, line: &[u8], check: F)
+    where
+        F: Fn(&[u8], &str) -> bool,
+    {
+        if check(line, pattern) {
+            self.count += 1;
         }
     }
 }
@@ -146,6 +222,7 @@ pub fn check_starts_ends_with(line: &[u8], pattern: &str) -> bool {
         .any(|word| word.starts_with_str(pattern) && word.ends_with_str(pattern))
 }
 
+// TODO: Probably redundant
 pub fn check_contains(line: &[u8], pattern: &str) -> bool {
     line.contains_str(pattern)
 }

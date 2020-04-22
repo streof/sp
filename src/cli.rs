@@ -3,8 +3,7 @@ use crate::writer::Writer;
 use crate::matcher::MatcherBuilder;
 use std::io::{BufRead, Write};
 use std::path::PathBuf;
-use structopt::clap::AppSettings;
-use structopt::StructOpt;
+use structopt::{StructOpt, clap::AppSettings};
 
 const ABOUT: &str = "
 grrs is a very basic implementation of grep. Use -h for more information.";
@@ -46,6 +45,10 @@ pub struct Cli {
     )]
     pub path: PathBuf,
 
+    /// Suppress normal output and show number of matching lines
+    #[structopt(short, long)]
+    pub count: bool,
+
     /// Only show matches containing fields ending with PATTERN
     #[structopt(short, long)]
     pub ends_with: bool,
@@ -58,7 +61,7 @@ pub struct Cli {
     #[structopt(short, long, value_name="NUM")]
     pub max_count: Option<u64>,
 
-    /// Do not show line number which is enabled by default
+    /// Suppress line numbers which are shown by default
     #[structopt(short, long)]
     pub no_line_number: bool,
 
@@ -80,6 +83,7 @@ impl Cli {
     pub fn show_matches(self, mut reader: impl BufRead, writer: impl Write) -> CliResult {
 
         let matcher = MatcherBuilder::new()
+            .count(self.count)
             .ends_with(self.ends_with)
             .ignore_case(self.ignore_case)
             .max_count(self.max_count)
@@ -93,9 +97,9 @@ impl Cli {
             matcher: &matcher,
         };
 
+        let wrt = Writer { wrt: writer };
         let matches = searcher.search_matches();
 
-        let wrt = Writer { wrt: writer };
         wrt.print_matches(matches, &matcher.config)?;
 
         // Return () on success

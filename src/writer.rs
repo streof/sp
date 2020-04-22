@@ -1,7 +1,7 @@
 use crate::cli::CliResult;
 use crate::ext::BStringExt;
 use crate::matcher::Config;
-use crate::searcher::{LineNumbers, SearchResult, SearcherResult};
+use crate::results::{GenInnerResult, GenResult, LineNumbers};
 use std::io::Write;
 
 pub struct Writer<W> {
@@ -9,7 +9,7 @@ pub struct Writer<W> {
 }
 
 impl<W: Write> Writer<W> {
-    pub fn print_matches(mut self, matcher_result: SearcherResult, config: &Config) -> CliResult {
+    pub fn print_matches(mut self, matcher_result: GenResult, config: &Config) -> CliResult {
         match matcher_result {
             Ok(match_result) => self
                 .print_lines_iter(match_result, config)
@@ -19,24 +19,26 @@ impl<W: Write> Writer<W> {
         Ok(())
     }
 
-    fn print_lines_iter(&mut self, match_result: SearchResult, config: &Config) -> CliResult {
+    fn print_lines_iter(&mut self, match_result: GenInnerResult, config: &Config) -> CliResult {
         let no_line_number = config.no_line_number;
-        let matches = match_result.matches;
-        let line_numbers = match_result.line_numbers;
-        if !no_line_number {
-            if let LineNumbers::Some(line_numbers_inner) = line_numbers {
-                for (line_number, single_match) in line_numbers_inner.iter().zip(matches) {
-                    writeln!(
-                        self.wrt,
-                        "{}:{}",
-                        line_number,
-                        BStringExt::to_utf8(&single_match)
-                    )?;
+        if let GenInnerResult::Search(search_result) = match_result {
+            let matches = search_result.matches;
+            let line_numbers = search_result.line_numbers;
+            if !no_line_number {
+                if let LineNumbers::Some(line_numbers_inner) = line_numbers {
+                    for (line_number, single_match) in line_numbers_inner.iter().zip(matches) {
+                        writeln!(
+                            self.wrt,
+                            "{}:{}",
+                            line_number,
+                            BStringExt::to_utf8(&single_match)
+                        )?;
+                    }
                 }
-            }
-        } else {
-            for single_match in matches.iter() {
-                writeln!(self.wrt, "{}", BStringExt::to_utf8(single_match))?;
+            } else {
+                for single_match in matches.iter() {
+                    writeln!(self.wrt, "{}", BStringExt::to_utf8(single_match))?;
+                }
             }
         }
         Ok(())

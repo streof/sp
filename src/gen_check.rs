@@ -1,5 +1,5 @@
-use crate::search_inner::*;
-use crate::searcher::*;
+use crate::results::*;
+use crate::searcher::Searcher;
 use bstr::{io::BufReadExt, ByteSlice};
 use std::io::BufRead;
 
@@ -10,60 +10,58 @@ pub trait GenCheck {
     fn no_line_number<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
         &mut self,
         check: F,
-    ) -> SearcherResult;
+    ) -> GenResult;
     fn no_line_number_caseless<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
         &mut self,
         check: F,
-    ) -> SearcherResult;
+    ) -> GenResult;
     fn no_line_number_max_count<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
         &mut self,
         check: F,
-    ) -> SearcherResult;
+    ) -> GenResult;
     fn no_line_number_caseless_max_count<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
         &mut self,
         check: F,
-    ) -> SearcherResult;
-    fn line_number<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
-        &mut self,
-        check: F,
-    ) -> SearcherResult;
+    ) -> GenResult;
+    fn line_number<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(&mut self, check: F) -> GenResult;
     fn line_number_caseless<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
         &mut self,
         check: F,
-    ) -> SearcherResult;
+    ) -> GenResult;
     fn line_number_max_count<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
         &mut self,
         check: F,
-    ) -> SearcherResult;
+    ) -> GenResult;
     fn line_number_caseless_max_count<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
         &mut self,
         check: F,
-    ) -> SearcherResult;
+    ) -> GenResult;
 }
 
 impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
     fn no_line_number<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
         &mut self,
         check: F,
-    ) -> SearcherResult {
+    ) -> GenResult {
         let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
 
         let mut sir = SearchInnerResult::default();
 
         reader.for_byte_line_with_terminator(|line| {
+            // TODO: Second pass (i.e. check function) over line is redundant
             if line.contains_str(pattern) {
                 sir.check_and_store_nln(pattern, line, &check);
             }
             Ok(true)
         })?;
 
-        Self::ret_searcher_result(sir.matches, LineNumbers::None)
+        sir.upcast()
     }
 
     fn no_line_number_caseless<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
         &mut self,
         check: F,
-    ) -> SearcherResult {
+    ) -> GenResult {
         let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
 
         let mut sir = SearchInnerResult::default();
@@ -84,13 +82,13 @@ impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
             Ok(true)
         })?;
 
-        Self::ret_searcher_result(sir.matches, LineNumbers::None)
+        sir.upcast()
     }
 
     fn no_line_number_max_count<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
         &mut self,
         check: F,
-    ) -> SearcherResult {
+    ) -> GenResult {
         let (reader, pattern, mut matches_left) = (
             &mut self.reader,
             &self.matcher.pattern,
@@ -109,13 +107,13 @@ impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
             Ok(true)
         })?;
 
-        Self::ret_searcher_result(sir.matches, LineNumbers::None)
+        sir.upcast()
     }
 
     fn no_line_number_caseless_max_count<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
         &mut self,
         check: F,
-    ) -> SearcherResult {
+    ) -> GenResult {
         let (reader, pattern, mut matches_left) = (
             &mut self.reader,
             &self.matcher.pattern,
@@ -155,13 +153,10 @@ impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
             Ok(true)
         })?;
 
-        Self::ret_searcher_result(sir.matches, LineNumbers::None)
+        sir.upcast()
     }
 
-    fn line_number<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
-        &mut self,
-        check: F,
-    ) -> SearcherResult {
+    fn line_number<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(&mut self, check: F) -> GenResult {
         let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
 
         let mut line_number = 0;
@@ -176,13 +171,13 @@ impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
             Ok(true)
         })?;
 
-        Self::ret_searcher_result(sir.matches, LineNumbers::Some(sir.line_numbers))
+        sir.upcast()
     }
 
     fn line_number_caseless<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
         &mut self,
         check: F,
-    ) -> SearcherResult {
+    ) -> GenResult {
         let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
 
         let mut line_number = 0;
@@ -205,13 +200,13 @@ impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
             Ok(true)
         })?;
 
-        Self::ret_searcher_result(sir.matches, LineNumbers::Some(sir.line_numbers))
+        sir.upcast()
     }
 
     fn line_number_max_count<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
         &mut self,
         check: F,
-    ) -> SearcherResult {
+    ) -> GenResult {
         let (reader, pattern, mut matches_left) = (
             &mut self.reader,
             &self.matcher.pattern,
@@ -238,13 +233,13 @@ impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
             Ok(true)
         })?;
 
-        Self::ret_searcher_result(sir.matches, LineNumbers::Some(sir.line_numbers))
+        sir.upcast()
     }
 
     fn line_number_caseless_max_count<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
         &mut self,
         check: F,
-    ) -> SearcherResult {
+    ) -> GenResult {
         let (reader, pattern, mut matches_left) = (
             &mut self.reader,
             &self.matcher.pattern,
@@ -287,6 +282,7 @@ impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
             }
             Ok(true)
         })?;
-        Self::ret_searcher_result(sir.matches, LineNumbers::Some(sir.line_numbers))
+
+        sir.upcast()
     }
 }

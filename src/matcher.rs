@@ -1,6 +1,7 @@
 /// Internal configuration of our cli which can only by modified by MatcherBuilder.
 #[derive(Clone, Debug)]
 pub struct Config {
+    pub count: bool,
     pub ends_with: bool,
     pub ignore_case: bool,
     pub max_count: Option<u64>,
@@ -12,6 +13,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Config {
         Config {
+            count: false,
             ends_with: false,
             ignore_case: false,
             max_count: None,
@@ -57,6 +59,12 @@ impl<'a> MatcherBuilder {
     }
 
     /// Disabled (i.e. false) by default
+    pub fn count(&mut self, v: bool) -> &mut MatcherBuilder {
+        self.config.count = v;
+        self
+    }
+
+    /// Disabled (i.e. false) by default
     pub fn ends_with(&mut self, v: bool) -> &mut MatcherBuilder {
         self.config.ends_with = v;
         self
@@ -99,6 +107,7 @@ impl<'a> MatcherBuilder {
         }
 
         let config = Config {
+            count: self.config.count,
             ends_with: self.config.ends_with,
             ignore_case: self.config.ignore_case,
             max_count: self.config.max_count,
