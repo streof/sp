@@ -50,14 +50,11 @@ impl Default for CountResult {
 }
 
 pub trait Upcast {
-    type Type;
-
-    fn upcast(self) -> Self::Type;
+    fn upcast(self) -> GenResult;
 }
 
 impl Upcast for SearchInnerResult {
-    type Type = GenResult;
-    fn upcast(self) -> Self::Type {
+    fn upcast(self) -> GenResult {
         let match_result = if self.line_numbers.is_empty() {
             SearchResult {
                 matches: self.matches,
@@ -75,8 +72,7 @@ impl Upcast for SearchInnerResult {
 }
 
 impl Upcast for CountResult {
-    type Type = GenResult;
-    fn upcast(self) -> Self::Type {
+    fn upcast(self) -> GenResult {
         Ok(GenInnerResult::Count(self))
     }
 }
