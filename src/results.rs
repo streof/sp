@@ -28,8 +28,8 @@ pub struct SearchInnerResult {
 }
 
 impl Default for SearchInnerResult {
-    fn default() -> SearchInnerResult {
-        SearchInnerResult {
+    fn default() -> Self {
+        Self {
             matches: Default::default(),
             line_numbers: Default::default(),
         }
@@ -42,8 +42,8 @@ pub struct CountResult {
 }
 
 impl Default for CountResult {
-    fn default() -> CountResult {
-        CountResult {
+    fn default() -> Self {
+        Self {
             count: Default::default(),
         }
     }

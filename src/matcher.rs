@@ -11,8 +11,8 @@ pub struct Config {
 }
 
 impl Default for Config {
-    fn default() -> Config {
-        Config {
+    fn default() -> Self {
+        Self {
             count: false,
             ends_with: false,
             ignore_case: false,
@@ -45,57 +45,57 @@ pub struct MatcherBuilder {
 }
 
 impl Default for MatcherBuilder {
-    fn default() -> MatcherBuilder {
-        MatcherBuilder::new()
+    fn default() -> Self {
+        Self::new()
     }
 }
 
 impl<'a> MatcherBuilder {
     /// Create a new Config builder with a default configuration.
-    pub fn new() -> MatcherBuilder {
-        MatcherBuilder {
+    pub fn new() -> Self {
+        Self {
             config: Config::default(),
         }
     }
 
     /// Disabled (i.e. false) by default
-    pub fn count(&mut self, v: bool) -> &mut MatcherBuilder {
+    pub fn count(&mut self, v: bool) -> &mut Self {
         self.config.count = v;
         self
     }
 
     /// Disabled (i.e. false) by default
-    pub fn ends_with(&mut self, v: bool) -> &mut MatcherBuilder {
+    pub fn ends_with(&mut self, v: bool) -> &mut Self {
         self.config.ends_with = v;
         self
     }
 
     /// Disabled (i.e. false) by default
-    pub fn ignore_case(&mut self, v: bool) -> &mut MatcherBuilder {
+    pub fn ignore_case(&mut self, v: bool) -> &mut Self {
         self.config.ignore_case = v;
         self
     }
 
     /// Disabled (i.e. None) by default
-    pub fn max_count(&mut self, v: Option<u64>) -> &mut MatcherBuilder {
+    pub fn max_count(&mut self, v: Option<u64>) -> &mut Self {
         self.config.max_count = v;
         self
     }
 
     /// Disabled (i.e. false) by default
-    pub fn no_line_number(&mut self, v: bool) -> &mut MatcherBuilder {
+    pub fn no_line_number(&mut self, v: bool) -> &mut Self {
         self.config.no_line_number = v;
         self
     }
 
     /// Disabled (i.e. false) by default
-    pub fn starts_with(&mut self, v: bool) -> &mut MatcherBuilder {
+    pub fn starts_with(&mut self, v: bool) -> &mut Self {
         self.config.starts_with = v;
         self
     }
 
     /// Disabled (i.e. false) by default
-    pub fn words(&mut self, v: bool) -> &mut MatcherBuilder {
+    pub fn words(&mut self, v: bool) -> &mut Self {
         self.config.words = v;
         self
     }
