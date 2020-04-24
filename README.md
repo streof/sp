@@ -1,15 +1,7 @@
 # grrs
 
-grrs is a simple hobby project that mainly follows the [cli book](https://rust-cli.github.io/book/).
-
-## Features
-
-This project extends the basic example from the cli book:
-
-- Less memory allocation (see [Memory allocation](#memory-allocation) below)
-- More features (line numbers, case insensitive search, limit shown matches, etc.)
-- More modulair codebase
-- More tests
+grrs is a basic implementation of grep/ripgrep. It can be used to find patterns/words
+in files. 
 
 ## Options 
 
@@ -22,6 +14,7 @@ ARGS:
     <PATH>       A file to search
 
 OPTIONS:
+    -c, --count              Suppress normal output and show number of matching lines
     -e, --ends-with          Only show matches containing fields ending with PATTERN
     -h, --help               Prints help information
     -i, --ignore-case        Case insensitive search
@@ -58,38 +51,33 @@ $ cargo test
 
 ## Considerations
 
-### Performance
-
-IMHO cli's should be at least perceived as fast by their users. Grrs being very 
-much a basic hobby project means that performance wasn't a strict requirement. 
-
-I did however look into several crates (including the awesome [ripgrep](https://github.com/BurntSushi/ripgrep)) in order 
-to explore the available options. Obviously, performance of a cli such as grrs 
-depends on many factors including:
+Tha main goal of this project was to reimplement a small number of grep/ripgrep
+alike features. Performance was not a strict requirement althought, in my
+opinion, cli's should at least be perceived as fast by their users. Performance
+is obviously a trade-off and for grss depends on things like:
 
 - system calls
 - memory allocation
+- cpu utilization
+- heuristics
 - matching algorithm
 
-#### System calls
+Here are some more details of my exploration process:
 
-An easy way to gain more information about a process is by using something like 
+- An easy way to gain more information about a process is by using something like
 `strace` (on Linux) or `dtruss` (on macOS). When comparing to a smart cli such
-as ripgrep, one will see that the number of `read` syscalls is significantly
-lower than when using a hobby project such as grrs. One of the reasons for that 
-is ripgrep's [`searcher`](https://github.com/BurntSushi/ripgrep/tree/master/crates/searcher) 
-who, among others things, looks for potential candidates and restricts the search 
-space resulting in lower number of `read` syscalls.
-
-
-#### Memory allocation
-
-A simple way to reduce memory allocation is by using an IO buffer. Rust's 
-standard library provides for example the very convenient [`lines`](https://doc.rust-lang.org/std/io/trait.BufRead.html#method.lines) API but also the lower level [`read_line`](https://doc.rust-lang.org/std/io/trait.BufRead.html#method.read_line) and [`read_until`](https://doc.rust-lang.org/std/io/trait.BufRead.html#method.read_until) methods. Initially, I used `read_line` but 
+as ripgrep, one will see that in some cases the number of `read` syscalls is
+significantly lower than when using a hobby project such as grrs. One of the
+reasons for that is heuristics in [ripgrep](https://github.com/BurntSushi/ripgrep)'s
+searcher which, among others things, determines whether or not to use memory
+maps and looks for potential candidates restricting the search space in some
+cases.
+- A simple way to reduce memory allocation is by using an IO buffer. Rust's
+standard library provides for example the very convenient [`lines`](https://doc.rust-lang.org/std/io/trait.BufRead.html#method.lines) API but also the lower level [`read_line`](https://doc.rust-lang.org/std/io/trait.BufRead.html#method.read_line) and [`read_until`](https://doc.rust-lang.org/std/io/trait.BufRead.html#method.read_until) methods. Initially, I used `read_line` but
 then I read this [reddit thread](https://www.reddit.com/r/rust/comments/cqpswx/processing_data_line_by_line_from_stdin_rust/) where [linereader](https://github.com/Freaky/rust-linereader)
 was mentioned. I ended up using [bstr](https://github.com/BurntSushi/bstr) which
 offers a good balance between rich, ergonomic API and performance (see this [commit](https://github.com/BurntSushi/bstr/commit/66dee497c8da16f397c1d0952e58dadf04b66b5c)).
+- Counts in grrs rely on a very naive implementation that does not take any
+advantage of modern CPU capabilities (see for example [bytecount](https://github.com/llogiq/bytecount))
 
-#### Matching algorithm
-
-[TODO]
+<!-- TODO: Matching algorithms -->
