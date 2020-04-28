@@ -1,7 +1,7 @@
 use crate::cli::CliResult;
 use crate::ext::BStringExt;
 use crate::matcher::Config;
-use crate::results::{GenInnerResult, GenResult, LineNumbers};
+use crate::results::{CountResult, GenInnerResult, GenResult, LineNumbers, SearchResult};
 use std::io::Write;
 
 pub struct Writer<W> {
@@ -9,8 +9,8 @@ pub struct Writer<W> {
 }
 
 impl<W: Write> Writer<W> {
-    pub fn print_matches(mut self, matcher_result: GenResult, config: &Config) -> CliResult {
-        match matcher_result {
+    pub fn print_matches(mut self, gen_result: GenResult, config: &Config) -> CliResult {
+        match gen_result {
             Ok(match_result) => self
                 .print_lines_iter(match_result, config)
                 .expect("Error occured while printing matches"),
@@ -19,26 +19,39 @@ impl<W: Write> Writer<W> {
         Ok(())
     }
 
-    fn print_lines_iter(&mut self, match_result: GenInnerResult, config: &Config) -> CliResult {
-        let no_line_number = config.no_line_number;
-        if let GenInnerResult::Search(search_result) = match_result {
-            let matches = search_result.matches;
-            let line_numbers = search_result.line_numbers;
-            if !no_line_number {
-                if let LineNumbers::Some(line_numbers_inner) = line_numbers {
-                    for (line_number, single_match) in line_numbers_inner.iter().zip(matches) {
-                        writeln!(
-                            self.wrt,
-                            "{}:{}",
-                            line_number,
-                            BStringExt::to_utf8(&single_match)
-                        )?;
-                    }
+    fn print_lines_iter(&mut self, gir: GenInnerResult, config: &Config) -> CliResult {
+        let nln = config.no_line_number;
+        match gir {
+            GenInnerResult::Count(count) => self.print_count(count),
+            GenInnerResult::Search(search) => self.print_search(search, nln),
+        }
+    }
+
+    fn print_count(&mut self, count: CountResult) -> CliResult {
+        if count.count == 0 {
+            Ok(())
+        } else {
+            Ok(writeln!(self.wrt, "{}", count.count)?)
+        }
+    }
+
+    fn print_search(&mut self, search: SearchResult, nln: bool) -> CliResult {
+        let matches = search.matches;
+        let line_numbers = search.line_numbers;
+        if !nln {
+            if let LineNumbers::Some(lni) = line_numbers {
+                for (line_number, single_match) in lni.iter().zip(matches) {
+                    writeln!(
+                        self.wrt,
+                        "{}:{}",
+                        line_number,
+                        BStringExt::to_utf8(&single_match)
+                    )?;
                 }
-            } else {
-                for single_match in matches.iter() {
-                    writeln!(self.wrt, "{}", BStringExt::to_utf8(single_match))?;
-                }
+            }
+        } else {
+            for single_match in matches.iter() {
+                writeln!(self.wrt, "{}", BStringExt::to_utf8(single_match))?;
             }
         }
         Ok(())

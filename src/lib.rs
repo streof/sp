@@ -1,3 +1,8 @@
+#![warn(clippy::nursery)]
+#![forbid(unsafe_code)]
+// #![warn(clippy::pedantic)]
+// #![warn(missing_debug_implementations)]
+// #![warn(missing_docs)]
 pub mod base;
 pub mod cli;
 pub mod ends_with;

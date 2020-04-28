@@ -78,3 +78,19 @@ fn empty_string_search() -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
+
+// TODO: Add test count without patter argument
+#[test]
+fn count_match() -> Result<(), Box<dyn Error>> {
+    let mut file = NamedTempFile::new()?;
+    writeln!(
+        file,
+        "A test\nActual content\nMore content\nA\x00nother test"
+    )?;
+
+    let mut cmd = Command::cargo_bin("grrs")?;
+    cmd.arg("A").arg(file.path()).arg("-c").arg("-i");
+    cmd.assert().success().stdout(predicate::str::contains("3"));
+
+    Ok(())
+}

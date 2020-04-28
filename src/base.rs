@@ -8,6 +8,8 @@ trait Base {
     fn no_line_number_caseless(&mut self) -> GenResult;
     fn line_number(&mut self) -> GenResult;
     fn line_number_caseless(&mut self) -> GenResult;
+    fn cnt(&mut self) -> GenResult;
+    fn cnt_caseless(&mut self) -> GenResult;
 }
 
 pub trait BaseSearch {
@@ -17,6 +19,42 @@ pub trait BaseSearch {
 // Closures try to borrow `self` as a whole so assign disjoint fields to
 // variables first
 impl<'a, R: BufRead> Base for Searcher<'a, R> {
+    fn cnt(&mut self) -> GenResult {
+        let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
+
+        let mut cr = CountResult::default();
+
+        // TODO: The underlying buffer can be improved
+        reader.for_byte_line_with_terminator(|line| {
+            // TODO: Replace pattern by pattern.as_bytes() and corresponding
+            // function implementation
+            cr.check_and_add(pattern, line, check_contains);
+            Ok(true)
+        })?;
+
+        cr.upcast()
+    }
+
+    fn cnt_caseless(&mut self) -> GenResult {
+        let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
+
+        let mut cr = CountResult::default();
+
+        // TODO: Redundant second pass over same line
+        reader.for_byte_line_with_terminator(|line| {
+            if line.is_ascii() {
+                cr.check_and_add(pattern, &line.to_ascii_lowercase(), check_contains);
+            } else {
+                let mut buf = Default::default();
+                line.to_lowercase_into(&mut buf);
+                cr.check_and_add(pattern, &buf, check_contains);
+            }
+            Ok(true)
+        })?;
+
+        cr.upcast()
+    }
+
     fn no_line_number(&mut self) -> GenResult {
         let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
 
@@ -99,16 +137,19 @@ impl<'a, R: BufRead> Base for Searcher<'a, R> {
 
 impl<'a, R: BufRead> BaseSearch for Searcher<'a, R> {
     fn get_matches(&mut self) -> GenResult {
-        let (ignore_case, no_line_number) = (
+        let (ignore_case, no_line_number, count) = (
             self.matcher.config.ignore_case,
             self.matcher.config.no_line_number,
+            self.matcher.config.count,
         );
 
-        match (no_line_number, ignore_case) {
-            (true, true) => self.no_line_number_caseless(),
-            (true, false) => self.no_line_number(),
-            (false, true) => self.line_number_caseless(),
-            (false, false) => self.line_number(),
+        match (no_line_number, ignore_case, count) {
+            (true, true, false) => self.no_line_number_caseless(),
+            (true, false, false) => self.no_line_number(),
+            (false, true, false) => self.line_number_caseless(),
+            (false, false, false) => self.line_number(),
+            (_, true, true) => self.cnt_caseless(),
+            (_, false, true) => self.cnt(),
         }
     }
 }
@@ -116,7 +157,6 @@ impl<'a, R: BufRead> BaseSearch for Searcher<'a, R> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::matcher::MatcherBuilder;
     use std::io::Cursor;
 
@@ -132,8 +172,8 @@ mod tests {
         let pattern = "Made".to_owned();
 
         let matcher = MatcherBuilder::new()
-            .no_line_number(true)
             .max_count(None)
+            .no_line_number(true)
             .build(pattern);
 
         let searcher = Searcher {
@@ -142,15 +182,11 @@ mod tests {
         };
 
         let gen_result = searcher.search_matches();
-        let gen_inner_result = gen_result.as_ref().unwrap();
+        let gir = gen_result.unwrap();
 
-        if let GenInnerResult::Search(search_result) = gen_inner_result {
-            let matches = &search_result.matches;
-            let line_numbers = &search_result.line_numbers;
+        let sr = SearchResult::default();
 
-            assert!(matches.is_empty());
-            assert_eq!(line_numbers, &LineNumbers::None);
-        };
+        assert_eq!(gir, GenInnerResult::Search(sr));
     }
 
     #[test]
@@ -159,8 +195,8 @@ mod tests {
         let pattern = "made".to_owned();
 
         let matcher = MatcherBuilder::new()
-            .no_line_number(false)
             .max_count(None)
+            .no_line_number(false)
             .build(pattern);
 
         let searcher = Searcher {
@@ -169,17 +205,13 @@ mod tests {
         };
 
         let gen_result = searcher.search_matches();
-        let gen_inner_result = gen_result.as_ref().unwrap();
+        let gir = gen_result.unwrap();
 
-        if let GenInnerResult::Search(search_result) = gen_inner_result {
-            let matches = &search_result.matches;
-            let line_numbers = &search_result.line_numbers;
+        let mut sr = SearchResult::default();
+        sr.matches.push("made a run".into());
+        sr.line_numbers = LineNumbers::Some(vec![2]);
 
-            assert!(matches.len() == 1);
-            assert_eq!(matches[0], &b"made a run"[..]);
-            let line_number_inner: Vec<u64> = vec![2];
-            assert_eq!(line_numbers, &LineNumbers::Some(line_number_inner));
-        };
+        assert_eq!(gir, GenInnerResult::Search(sr));
     }
 
     #[test]
@@ -188,8 +220,8 @@ mod tests {
         let pattern = "made".to_owned();
 
         let matcher = MatcherBuilder::new()
-            .no_line_number(false)
             .max_count(None)
+            .no_line_number(false)
             .build(pattern);
 
         let searcher = Searcher {
@@ -198,13 +230,11 @@ mod tests {
         };
 
         let gen_result = searcher.search_matches();
-        let gen_inner_result = gen_result.as_ref().unwrap();
+        let gir = gen_result.unwrap();
 
-        if let GenInnerResult::Search(search_result) = gen_inner_result {
-            let matches = &search_result.matches;
+        let sr = SearchResult::default();
 
-            assert_eq!(matches.len(), 0);
-        };
+        assert_eq!(gir, GenInnerResult::Search(sr));
     }
 
     #[test]
@@ -213,8 +243,8 @@ mod tests {
         let pattern = "made".to_owned();
 
         let matcher = MatcherBuilder::new()
-            .no_line_number(false)
             .max_count(None)
+            .no_line_number(false)
             .build(pattern);
 
         let searcher = Searcher {
@@ -223,14 +253,13 @@ mod tests {
         };
 
         let gen_result = searcher.search_matches();
-        let gen_inner_result = gen_result.as_ref().unwrap();
+        let gir = gen_result.unwrap();
 
-        if let GenInnerResult::Search(search_result) = gen_inner_result {
-            let matches = &search_result.matches;
+        let mut sr = SearchResult::default();
+        sr.matches.push("made a r\x00un".into());
+        sr.line_numbers = LineNumbers::Some(vec![2]);
 
-            assert_eq!(matches.len(), 1);
-            assert_eq!(matches[0], &b"made a r\x00un"[..]);
-        };
+        assert_eq!(gir, GenInnerResult::Search(sr));
     }
 
     #[test]
@@ -239,8 +268,8 @@ mod tests {
         let pattern = "r\x00un".to_owned();
 
         let matcher = MatcherBuilder::new()
-            .no_line_number(false)
             .max_count(None)
+            .no_line_number(false)
             .build(pattern);
 
         let searcher = Searcher {
@@ -249,14 +278,13 @@ mod tests {
         };
 
         let gen_result = searcher.search_matches();
-        let gen_inner_result = gen_result.as_ref().unwrap();
+        let gir = gen_result.unwrap();
 
-        if let GenInnerResult::Search(search_result) = gen_inner_result {
-            let matches = &search_result.matches;
+        let mut sr = SearchResult::default();
+        sr.matches.push("made a r\x00un".into());
+        sr.line_numbers = LineNumbers::Some(vec![2]);
 
-            assert_eq!(matches.len(), 1);
-            assert_eq!(matches[0], &b"made a r\x00un"[..]);
-        };
+        assert_eq!(gir, GenInnerResult::Search(sr));
     }
 
     #[test]
@@ -276,16 +304,14 @@ mod tests {
         };
 
         let gen_result = searcher.search_matches();
-        let gen_inner_result = gen_result.as_ref().unwrap();
+        let gir = gen_result.unwrap();
 
-        if let GenInnerResult::Search(search_result) = gen_inner_result {
-            let matches = &search_result.matches;
-            let line_numbers = &search_result.line_numbers;
+        let mut sr = SearchResult::default();
+        sr.matches.push("He started again".into());
+        sr.matches.push("a\x00nd again".into());
+        sr.line_numbers = LineNumbers::Some(vec![1, 2]);
 
-            assert!(matches.len() == 2);
-            let line_number_inner: Vec<u64> = vec![1, 2];
-            assert_eq!(line_numbers, &LineNumbers::Some(line_number_inner));
-        };
+        assert_eq!(gir, GenInnerResult::Search(sr));
     }
 
     #[test]
@@ -305,14 +331,52 @@ mod tests {
         };
 
         let gen_result = searcher.search_matches();
-        let gen_inner_result = gen_result.as_ref().unwrap();
+        let gir = gen_result.unwrap();
 
-        if let GenInnerResult::Search(search_result) = gen_inner_result {
-            let matches = &search_result.matches;
-            let line_numbers = &search_result.line_numbers;
+        let mut sr = SearchResult::default();
+        sr.matches.push("& AΓain".into());
 
-            assert!(matches.len() == 1);
-            assert_eq!(line_numbers, &LineNumbers::None);
+        assert_eq!(gir, GenInnerResult::Search(sr));
+    }
+
+    #[test]
+    fn cnt() {
+        let mut line = Cursor::new(LINE_BIN3.as_bytes());
+        let pattern = "t".to_owned();
+
+        let matcher = MatcherBuilder::new().count(true).build(pattern);
+
+        let searcher = Searcher {
+            reader: &mut line,
+            matcher: &matcher,
         };
+
+        let gen_result = searcher.search_matches();
+        let gir = gen_result.unwrap();
+
+        let cr = CountResult { count: 2 };
+        assert_eq!(gir, GenInnerResult::Count(cr));
+    }
+
+    #[test]
+    fn cnt_caseless() {
+        let mut line = Cursor::new(LINE_MAX_NON_ASCII.as_bytes());
+        let pattern = "γ".to_owned();
+
+        let matcher = MatcherBuilder::new()
+            .count(true)
+            .ignore_case(true)
+            .build(pattern);
+
+        let searcher = Searcher {
+            reader: &mut line,
+            matcher: &matcher,
+        };
+
+        let gen_result = searcher.search_matches();
+        let gir = gen_result.unwrap();
+
+        let cr = CountResult { count: 1 };
+        assert_eq!(gir, GenInnerResult::Count(cr));
     }
 }

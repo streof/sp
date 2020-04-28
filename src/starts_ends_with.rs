@@ -9,21 +9,30 @@ pub trait StartsEndsWithSearch {
 
 impl<'a, R: BufRead> StartsEndsWithSearch for Searcher<'a, R> {
     fn get_matches(&mut self) -> GenResult {
-        let (ignore_case, max_count, no_line_number) = (
+        let (ignore_case, max_count, no_line_number, count) = (
             self.matcher.config.ignore_case,
             self.matcher.config.max_count,
             self.matcher.config.no_line_number,
+            self.matcher.config.count,
         );
 
-        match (no_line_number, ignore_case, max_count) {
-            (true, true, Some(_)) => self.no_line_number_caseless_max_count(check_starts_ends_with),
-            (true, true, None) => self.no_line_number_caseless(check_starts_ends_with),
-            (true, false, Some(_)) => self.no_line_number_max_count(check_starts_ends_with),
-            (true, false, None) => self.no_line_number(check_starts_ends_with),
-            (false, true, Some(_)) => self.line_number_caseless_max_count(check_starts_ends_with),
-            (false, true, None) => self.line_number_caseless(check_starts_ends_with),
-            (false, false, Some(_)) => self.line_number_max_count(check_starts_ends_with),
-            (false, false, None) => self.line_number(check_starts_ends_with),
+        match (no_line_number, ignore_case, max_count, count) {
+            (true, true, Some(_), false) => {
+                self.no_line_number_caseless_max_count(check_starts_ends_with)
+            }
+            (true, true, None, false) => self.no_line_number_caseless(check_starts_ends_with),
+            (true, false, Some(_), false) => self.no_line_number_max_count(check_starts_ends_with),
+            (true, false, None, false) => self.no_line_number(check_starts_ends_with),
+            (false, true, Some(_), false) => {
+                self.line_number_caseless_max_count(check_starts_ends_with)
+            }
+            (false, true, None, false) => self.line_number_caseless(check_starts_ends_with),
+            (false, false, Some(_), false) => self.line_number_max_count(check_starts_ends_with),
+            (false, false, None, false) => self.line_number(check_starts_ends_with),
+            (_, true, Some(_), true) => self.cnt_caseless_max_count(check_starts_ends_with),
+            (_, true, None, true) => self.cnt_caseless(check_starts_ends_with),
+            (_, false, Some(_), true) => self.cnt_max_count(check_starts_ends_with),
+            (_, false, None, true) => self.cnt(check_starts_ends_with),
         }
     }
 }
@@ -31,9 +40,8 @@ impl<'a, R: BufRead> StartsEndsWithSearch for Searcher<'a, R> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::matcher::MatcherBuilder;
-    use crate::results::{GenInnerResult, LineNumbers};
+    use crate::results::{CountResult, GenInnerResult, LineNumbers, SearchResult};
     use std::io::Cursor;
 
     const LINE: &str = "gain\ngain,\na\x00nd, Gain,\n& AΓain\ngain,";
@@ -44,11 +52,11 @@ mod tests {
         let pattern = "gain,".to_owned();
 
         let matcher = MatcherBuilder::new()
+            .ends_with(true)
             .ignore_case(false)
             .max_count(Some(1))
             .no_line_number(false)
             .starts_with(true)
-            .ends_with(true)
             .build(pattern);
 
         let searcher = Searcher {
@@ -57,16 +65,37 @@ mod tests {
         };
 
         let gen_result = searcher.search_matches();
-        let gen_inner_result = gen_result.as_ref().unwrap();
+        let gir = gen_result.unwrap();
 
-        if let GenInnerResult::Search(search_result) = gen_inner_result {
-            let matches = &search_result.matches;
-            let line_numbers = &search_result.line_numbers;
-            let line_number_inner: Vec<u64> = vec![2];
+        let mut sr = SearchResult::default();
+        sr.matches.push("gain,".into());
+        sr.line_numbers = LineNumbers::Some(vec![2]);
 
-            assert!(matches.len() == 1);
-            assert_eq!(matches[0], &b"gain,"[..]);
-            assert_eq!(line_numbers, &LineNumbers::Some(line_number_inner));
+        assert_eq!(gir, GenInnerResult::Search(sr));
+    }
+
+    #[test]
+    fn cnt_caseless_max_count() {
+        let mut line = Cursor::new(LINE.as_bytes());
+        let pattern = "gain,".to_owned();
+
+        let matcher = MatcherBuilder::new()
+            .count(true)
+            .ends_with(true)
+            .ignore_case(true)
+            .max_count(Some(1))
+            .starts_with(true)
+            .build(pattern);
+
+        let searcher = Searcher {
+            reader: &mut line,
+            matcher: &matcher,
         };
+
+        let gen_result = searcher.search_matches();
+        let gir = gen_result.unwrap();
+
+        let cr = CountResult { count: 3 };
+        assert_eq!(gir, GenInnerResult::Count(cr));
     }
 }

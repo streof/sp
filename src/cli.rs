@@ -36,6 +36,7 @@ pub struct Cli {
         long_help = "A pattern used for matching a sub-slice"
     )]
     pub pattern: String,
+    // TODO: pattern should be optional if -c is provided
 
     #[structopt(
         name = "PATH",

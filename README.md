@@ -28,8 +28,8 @@ OPTIONS:
 
 ## Building
 
-This is a Rust project so first you have to make sure that [Rust](https://www.rust-lang.org/) in running
-on your machine.
+This is a Rust project so first you have to make sure that [Rust](https://www.rust-lang.org/)
+is running on your machine.
 
 To build this project:
 
@@ -43,7 +43,7 @@ grrs 0.1.2
 
 ## Running tests
 
-grrs includes a few unit and integration test. Run them as follows
+grrs includes unit and integration tests. Run them as follows:
 
 ```
 $ cargo test
@@ -54,30 +54,30 @@ $ cargo test
 Tha main goal of this project was to reimplement a small number of grep/ripgrep
 alike features. Performance was not a strict requirement althought, in my
 opinion, cli's should at least be perceived as fast by their users. Performance
-is obviously a trade-off and for grss depends on things like:
+is obviously a trade-off and for grrs depends on things like:
 
-- system calls
 - memory allocation
 - cpu utilization
 - heuristics
-- matching algorithm
+- algorithm implementation (e.g. searching, encoding/decoding)
+- number system calls
 
-Here are some more details of my exploration process:
+Here are some thoughts from the exploration phase:
 
-- An easy way to gain more information about a process is by using something like
-`strace` (on Linux) or `dtruss` (on macOS). When comparing to a smart cli such
-as ripgrep, one will see that in some cases the number of `read` syscalls is
-significantly lower than when using a hobby project such as grrs. One of the
-reasons for that is heuristics in [ripgrep](https://github.com/BurntSushi/ripgrep)'s
-searcher which, among others things, determines whether or not to use memory
-maps and looks for potential candidates restricting the search space in some
-cases.
-- A simple way to reduce memory allocation is by using an IO buffer. Rust's
-standard library provides for example the very convenient [`lines`](https://doc.rust-lang.org/std/io/trait.BufRead.html#method.lines) API but also the lower level [`read_line`](https://doc.rust-lang.org/std/io/trait.BufRead.html#method.read_line) and [`read_until`](https://doc.rust-lang.org/std/io/trait.BufRead.html#method.read_until) methods. Initially, I used `read_line` but
-then I read this [reddit thread](https://www.reddit.com/r/rust/comments/cqpswx/processing_data_line_by_line_from_stdin_rust/) where [linereader](https://github.com/Freaky/rust-linereader)
+- A simple way to reduce memory allocation is using an IO buffer. Rust's
+standard library provides for example the very convenient [`lines`](https://doc.rust-lang.org/std/io/trait.BufRead.html#method.lines) API but also the lower level `read_line` and `read_until` methods. Initially, this
+project used `read_line` but then I read this [reddit thread](https://www.reddit.com/r/rust/comments/cqpswx/processing_data_line_by_line_from_stdin_rust/) where [linereader](https://github.com/Freaky/rust-linereader)
 was mentioned. I ended up using [bstr](https://github.com/BurntSushi/bstr) which
 offers a good balance between rich, ergonomic API and performance (see this [commit](https://github.com/BurntSushi/bstr/commit/66dee497c8da16f397c1d0952e58dadf04b66b5c)).
 - Counts in grrs rely on a very naive implementation that does not take any
 advantage of modern CPU capabilities (see for example [bytecount](https://github.com/llogiq/bytecount))
-
-<!-- TODO: Matching algorithms -->
+- The current matching algorithm relies on high level API's exposed by `bstr`.
+However, I also performed some simple benchmarks which suggested that switching
+to [`twoway`](https://github.com/bluss/twoway) will give a significant performance
+boost (>2x speedup). Rust uses the twoway algorithm for things like pattern
+matching, althought the implementation differs from the one provided by the twoway
+crate.
+- In some cases the number of read syscalls used by grrs is significantly higher
+than when using ripgrep.
+- Ripgrep uses [`encoding_rs`](https://github.com/hsivonen/encoding_rs) for fast
+encoding/decoding.

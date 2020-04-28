@@ -4,7 +4,7 @@ use bstr::{io::BufReadExt, ByteSlice};
 use std::io::BufRead;
 
 // Explicit lifetime annotation is required as it has to match the annotation
-// used when defining the check functions in search_inner (which was in this
+// used when defining the check functions in results (which was in this
 // case omitted and hence inferred)
 pub trait GenCheck {
     fn no_line_number<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
@@ -36,9 +36,108 @@ pub trait GenCheck {
         &mut self,
         check: F,
     ) -> GenResult;
+    fn cnt_caseless_max_count<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
+        &mut self,
+        check: F,
+    ) -> GenResult;
+    fn cnt_caseless<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(&mut self, check: F)
+        -> GenResult;
+    fn cnt_max_count<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
+        &mut self,
+        check: F,
+    ) -> GenResult;
+    fn cnt<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(&mut self, check: F) -> GenResult;
 }
 
 impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
+    fn cnt<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(&mut self, check: F) -> GenResult {
+        let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
+
+        let mut cr = CountResult::default();
+
+        reader.for_byte_line_with_terminator(|line| {
+            cr.check_and_add(pattern, line, &check);
+            Ok(true)
+        })?;
+
+        cr.upcast()
+    }
+    fn cnt_max_count<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
+        &mut self,
+        check: F,
+    ) -> GenResult {
+        let (reader, pattern, matches_left) = (
+            &mut self.reader,
+            &self.matcher.pattern,
+            self.matcher.config.max_count.unwrap(),
+        );
+
+        let mut cr = CountResult::default();
+
+        reader.for_byte_line_with_terminator(|line| {
+            if matches_left == 0 as u64 {
+                return Ok(true);
+            }
+            cr.check_and_add(pattern, line, &check);
+            Ok(true)
+        })?;
+
+        cr.upcast()
+    }
+    fn cnt_caseless<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
+        &mut self,
+        check: F,
+    ) -> GenResult {
+        let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
+
+        let mut cr = CountResult::default();
+
+        reader.for_byte_line_with_terminator(|line| {
+            if line.is_ascii() {
+                let line_lower = line.to_ascii_lowercase();
+                cr.check_and_add(pattern, &line_lower, &check);
+            } else {
+                // TODO: Better to reuse the buffer instead of creating a new
+                // one on every pass
+                let mut buf = Default::default();
+                line.to_lowercase_into(&mut buf);
+                cr.check_and_add(pattern, &buf, &check);
+            }
+            Ok(true)
+        })?;
+
+        cr.upcast()
+    }
+    fn cnt_caseless_max_count<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
+        &mut self,
+        check: F,
+    ) -> GenResult {
+        let (reader, pattern, matches_left) = (
+            &mut self.reader,
+            &self.matcher.pattern,
+            self.matcher.config.max_count.unwrap(),
+        );
+
+        let mut cr = CountResult::default();
+
+        reader.for_byte_line_with_terminator(|line| {
+            if matches_left == 0 as u64 {
+                return Ok(true);
+            }
+            if line.is_ascii() {
+                let line_lower = line.to_ascii_lowercase();
+                cr.check_and_add(pattern, &line_lower, &check);
+            } else {
+                let mut buf = Default::default();
+                line.to_lowercase_into(&mut buf);
+                cr.check_and_add(pattern, &buf, &check);
+            }
+            Ok(true)
+        })?;
+
+        cr.upcast()
+    }
+
     fn no_line_number<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
         &mut self,
         check: F,
@@ -48,10 +147,7 @@ impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
         let mut sir = SearchInnerResult::default();
 
         reader.for_byte_line_with_terminator(|line| {
-            // TODO: Second pass (i.e. check function) over line is redundant
-            if line.contains_str(pattern) {
-                sir.check_and_store_nln(pattern, line, &check);
-            }
+            sir.check_and_store_nln(pattern, line, &check);
             Ok(true)
         })?;
 
@@ -69,15 +165,11 @@ impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
         reader.for_byte_line_with_terminator(|line| {
             if line.is_ascii() {
                 let line_lower = line.to_ascii_lowercase();
-                if line_lower.contains_str(pattern) {
-                    sir.check_and_store_separate_nln(pattern, &line_lower, line, &check);
-                }
+                sir.check_and_store_separate_nln(pattern, &line_lower, line, &check);
             } else {
                 let mut buf = Default::default();
                 line.to_lowercase_into(&mut buf);
-                if buf.contains_str(pattern) {
-                    sir.check_and_store_separate_nln(pattern, &buf, line, &check);
-                }
+                sir.check_and_store_separate_nln(pattern, &buf, line, &check);
             }
             Ok(true)
         })?;
@@ -101,9 +193,7 @@ impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
             if matches_left == 0 as u64 {
                 return Ok(true);
             }
-            if line.contains_str(pattern) {
-                sir.check_and_store_nln_max_count(pattern, line, &mut matches_left, &check);
-            }
+            sir.check_and_store_nln_max_count(pattern, line, &mut matches_left, &check);
             Ok(true)
         })?;
 
@@ -128,27 +218,23 @@ impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
             }
             if line.is_ascii() {
                 let line_lower = line.to_ascii_lowercase();
-                if line_lower.contains_str(pattern) {
-                    sir.check_and_store_separate_nln_max_count(
-                        pattern,
-                        &line_lower,
-                        line,
-                        &mut matches_left,
-                        &check,
-                    );
-                }
+                sir.check_and_store_separate_nln_max_count(
+                    pattern,
+                    &line_lower,
+                    line,
+                    &mut matches_left,
+                    &check,
+                );
             } else {
                 let mut buf = Default::default();
                 line.to_lowercase_into(&mut buf);
-                if buf.contains_str(pattern) {
-                    sir.check_and_store_separate_nln_max_count(
-                        pattern,
-                        &buf,
-                        line,
-                        &mut matches_left,
-                        &check,
-                    );
-                }
+                sir.check_and_store_separate_nln_max_count(
+                    pattern,
+                    &buf,
+                    line,
+                    &mut matches_left,
+                    &check,
+                );
             }
             Ok(true)
         })?;
@@ -165,9 +251,8 @@ impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
         reader.for_byte_line_with_terminator(|line| {
             line_number += 1;
 
-            if line.contains_str(pattern) {
-                sir.check_and_store(pattern, line_number, line, &check);
-            }
+            sir.check_and_store(pattern, line_number, line, &check);
+
             Ok(true)
         })?;
 
@@ -187,15 +272,11 @@ impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
             line_number += 1;
             if line.is_ascii() {
                 let line_lower = line.to_ascii_lowercase();
-                if line_lower.contains_str(pattern) {
-                    sir.check_and_store_separate(pattern, line_number, &line_lower, line, &check);
-                }
+                sir.check_and_store_separate(pattern, line_number, &line_lower, line, &check);
             } else {
                 let mut buf = Default::default();
                 line.to_lowercase_into(&mut buf);
-                if buf.contains_str(pattern) {
-                    sir.check_and_store_separate(pattern, line_number, &buf, line, &check);
-                }
+                sir.check_and_store_separate(pattern, line_number, &buf, line, &check);
             }
             Ok(true)
         })?;
@@ -221,15 +302,7 @@ impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
                 return Ok(true);
             }
             line_number += 1;
-            if line.contains_str(pattern) {
-                sir.check_and_store_max_count(
-                    pattern,
-                    line_number,
-                    line,
-                    &mut matches_left,
-                    &check,
-                );
-            }
+            sir.check_and_store_max_count(pattern, line_number, line, &mut matches_left, &check);
             Ok(true)
         })?;
 
@@ -256,29 +329,25 @@ impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
             line_number += 1;
             if line.is_ascii() {
                 let line_lower = line.to_ascii_lowercase();
-                if line_lower.contains_str(pattern) {
-                    sir.check_and_store_separate_max_count(
-                        pattern,
-                        line_number,
-                        &line_lower,
-                        line,
-                        &mut matches_left,
-                        &check,
-                    );
-                }
+                sir.check_and_store_separate_max_count(
+                    pattern,
+                    line_number,
+                    &line_lower,
+                    line,
+                    &mut matches_left,
+                    &check,
+                );
             } else {
                 let mut buf = Default::default();
                 line.to_lowercase_into(&mut buf);
-                if buf.contains_str(pattern) {
-                    sir.check_and_store_separate_max_count(
-                        pattern,
-                        line_number,
-                        &buf,
-                        line,
-                        &mut matches_left,
-                        &check,
-                    );
-                }
+                sir.check_and_store_separate_max_count(
+                    pattern,
+                    line_number,
+                    &buf,
+                    line,
+                    &mut matches_left,
+                    &check,
+                );
             }
             Ok(true)
         })?;

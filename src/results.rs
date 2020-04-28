@@ -7,11 +7,22 @@ pub enum LineNumbers {
     Some(Vec<u64>),
 }
 
+#[derive(Debug, PartialEq)]
 pub struct SearchResult {
     pub matches: Vec<BString>,
     pub line_numbers: LineNumbers,
 }
 
+impl Default for SearchResult {
+    fn default() -> Self {
+        Self {
+            matches: Default::default(),
+            line_numbers: LineNumbers::None,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
 pub enum GenInnerResult {
     Search(SearchResult),
     Count(CountResult),
@@ -36,7 +47,7 @@ impl Default for SearchInnerResult {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct CountResult {
     pub count: u64,
 }
@@ -218,7 +229,7 @@ pub fn check_starts_ends_with(line: &[u8], pattern: &str) -> bool {
         .any(|word| word.starts_with_str(pattern) && word.ends_with_str(pattern))
 }
 
-// TODO: Probably redundant
+/// Only used by base and max_count modules
 pub fn check_contains(line: &[u8], pattern: &str) -> bool {
     line.contains_str(pattern)
 }
