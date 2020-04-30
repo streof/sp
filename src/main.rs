@@ -1,12 +1,12 @@
 use anyhow::Context;
-use grrs::cli::{Cli, CliResult};
+use grrs::cli::{Input, Output};
 use std::fs::File;
 use std::io::{self, BufReader};
 use structopt::StructOpt;
 
-fn main() -> CliResult {
+fn main() -> Output {
     // Parse arguments
-    let args = Cli::from_args();
+    let args = Input::from_args();
 
     // Read file into buffer
     let f =

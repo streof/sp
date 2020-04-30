@@ -1,13 +1,12 @@
-use crate::gen_check::GenCheck;
 use crate::results::{check_starts_ends_with, GenResult};
-use crate::searcher::Searcher;
+use crate::search::{GenSearch, Searcher};
 use std::io::BufRead;
 
-pub trait StartsEndsWithSearch {
+pub trait StartsEndsWith {
     fn get_matches(&mut self) -> GenResult;
 }
 
-impl<'a, R: BufRead> StartsEndsWithSearch for Searcher<'a, R> {
+impl<'a, R: BufRead> StartsEndsWith for Searcher<'a, R> {
     fn get_matches(&mut self) -> GenResult {
         let (ignore_case, max_count, no_line_number, count) = (
             self.matcher.config.ignore_case,
@@ -39,7 +38,7 @@ impl<'a, R: BufRead> StartsEndsWithSearch for Searcher<'a, R> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::Searcher;
     use crate::matcher::MatcherBuilder;
     use crate::results::{CountResult, GenInnerResult, LineNumbers, SearchResult};
     use std::io::Cursor;

@@ -6,7 +6,7 @@ pub trait ByteSliceExt {
 }
 
 impl ByteSliceExt for [u8] {
-    /// Trims line terminator and converts result to BString
+    /// Trims line terminator and converts result to `BString`
     fn trim_terminator(&self) -> BString {
         self.trim_end_with(|c| c == '\n' || c == '\r').into()
     }

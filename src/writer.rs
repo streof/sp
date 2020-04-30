@@ -1,33 +1,33 @@
-use crate::cli::CliResult;
+use crate::cli::Output;
 use crate::ext::BStringExt;
 use crate::matcher::Config;
 use crate::results::{CountResult, GenInnerResult, GenResult, LineNumbers, SearchResult};
 use std::io::Write;
 
+#[derive(Debug)]
 pub struct Writer<W> {
     pub wrt: W,
 }
 
 impl<W: Write> Writer<W> {
-    pub fn print_matches(mut self, gen_result: GenResult, config: &Config) -> CliResult {
-        match gen_result {
-            Ok(match_result) => self
-                .print_lines_iter(match_result, config)
-                .expect("Error occured while printing matches"),
-            Err(err) => eprintln!("Error occured while searching for matches: {}", err),
+    pub fn print_matches(mut self, gen_result: GenResult, config: &Config) -> Output {
+        if let Ok(match_result) = gen_result {
+            self.print_lines_iter(match_result, config)?
+        } else {
+            eprintln!("This error should never occur")
         };
         Ok(())
     }
 
-    fn print_lines_iter(&mut self, gir: GenInnerResult, config: &Config) -> CliResult {
+    fn print_lines_iter(&mut self, gir: GenInnerResult, config: &Config) -> Output {
         let nln = config.no_line_number;
         match gir {
-            GenInnerResult::Count(count) => self.print_count(count),
+            GenInnerResult::Count(count) => self.print_count(&count),
             GenInnerResult::Search(search) => self.print_search(search, nln),
         }
     }
 
-    fn print_count(&mut self, count: CountResult) -> CliResult {
+    fn print_count(&mut self, count: &CountResult) -> Output {
         if count.count == 0 {
             Ok(())
         } else {
@@ -35,23 +35,21 @@ impl<W: Write> Writer<W> {
         }
     }
 
-    fn print_search(&mut self, search: SearchResult, nln: bool) -> CliResult {
+    fn print_search(&mut self, search: SearchResult, nln: bool) -> Output {
         let matches = search.matches;
         let line_numbers = search.line_numbers;
-        if !nln {
-            if let LineNumbers::Some(lni) = line_numbers {
-                for (line_number, single_match) in lni.iter().zip(matches) {
-                    writeln!(
-                        self.wrt,
-                        "{}:{}",
-                        line_number,
-                        BStringExt::to_utf8(&single_match)
-                    )?;
-                }
-            }
-        } else {
-            for single_match in matches.iter() {
+        if nln {
+            for single_match in &matches {
                 writeln!(self.wrt, "{}", BStringExt::to_utf8(single_match))?;
+            }
+        } else if let LineNumbers::Some(lni) = line_numbers {
+            for (line_number, single_match) in lni.iter().zip(matches) {
+                writeln!(
+                    self.wrt,
+                    "{}:{}",
+                    line_number,
+                    BStringExt::to_utf8(&single_match)
+                )?;
             }
         }
         Ok(())
@@ -61,9 +59,9 @@ impl<W: Write> Writer<W> {
 #[cfg(test)]
 mod tests {
 
-    use super::*;
+    use super::Writer;
     use crate::matcher::MatcherBuilder;
-    use crate::searcher::*;
+    use crate::search::Searcher;
     use std::fs::File;
     use std::io::Cursor;
     use std::io::{Read, Seek, SeekFrom, Write};

@@ -2,6 +2,7 @@ use crate::matcher::{Matcher, MatcherType};
 use crate::results::GenResult;
 use std::io::BufRead;
 
+#[derive(Debug)]
 pub struct Searcher<'a, R> {
     pub reader: R,
     pub matcher: &'a Matcher,
@@ -12,27 +13,27 @@ impl<'a, R: BufRead> Searcher<'a, R> {
         let matcher_type = &self.matcher.matcher_type;
         match matcher_type {
             MatcherType::Base => {
-                use crate::base::BaseSearch;
+                use crate::search::Base;
                 self.get_matches()
             }
             MatcherType::EndsWith => {
-                use crate::ends_with::EndsWithSearch;
+                use crate::search::EndsWith;
                 self.get_matches()
             }
             MatcherType::MaxCount => {
-                use crate::max_count::MaxCountSearch;
+                use crate::search::MaxCount;
                 self.get_matches()
             }
             MatcherType::StartsWith => {
-                use crate::starts_with::StartsWithSearch;
+                use crate::search::StartsWith;
                 self.get_matches()
             }
             MatcherType::StartsEndsWith => {
-                use crate::starts_ends_with::StartsEndsWithSearch;
+                use crate::search::StartsEndsWith;
                 self.get_matches()
             }
             MatcherType::Words => {
-                use crate::words::WordsSearch;
+                use crate::search::Words;
                 self.get_matches()
             }
         }

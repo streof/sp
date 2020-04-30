@@ -1,4 +1,6 @@
-use crate::searcher::Searcher;
+//! Stores provided user input and requests desired output.
+
+use crate::search::Searcher;
 use crate::writer::Writer;
 use crate::matcher::MatcherBuilder;
 use std::io::{BufRead, Write};
@@ -25,11 +27,13 @@ OPTIONS:
 
 // AppSettings::DeriveDisplayOrder might be helpful for custom ordering
 // AppSettings::HidePossibleValuesInHelp for concise usage message
+/// Stores provided user input including any specified options.
 #[structopt(rename_all = "kebab-case", about = ABOUT, usage = USAGE, 
     template = TEMPLATE, 
     global_settings(&[AppSettings::UnifiedHelpMessage]))]
-#[derive(StructOpt)]
-pub struct Cli {
+#[derive(StructOpt, Debug)]
+pub struct Input {
+    /// A pattern used for matching a sub-slice
     #[structopt(
         name = "PATTERN",
         help = "A pattern used for matching a sub-slice",
@@ -38,6 +42,7 @@ pub struct Cli {
     pub pattern: String,
     // TODO: pattern should be optional if -c is provided
 
+    /// A file to search
     #[structopt(
         name = "PATH",
         parse(from_os_str),
@@ -78,10 +83,16 @@ pub struct Cli {
     pub words: bool,
 }
 
-pub type CliResult = anyhow::Result<(), anyhow::Error>;
+/// A convenient type alias holding the returned result. In case of an `Err`,
+/// the error will be propagated and displayed in a human-readable way.
+pub type Output = anyhow::Result<(), anyhow::Error>;
 
-impl Cli {
-    pub fn show_matches(self, mut reader: impl BufRead, writer: impl Write) -> CliResult {
+impl Input {
+    /// # Errors
+    ///
+    /// Will return `Err` if there was a problem reading from the underlying
+    /// reader or if UTF-8 conversion failed
+    pub fn show_matches(self, mut reader: impl BufRead, writer: impl Write) -> Output {
 
         let matcher = MatcherBuilder::new()
             .count(self.count)
@@ -99,9 +110,9 @@ impl Cli {
         };
 
         let wrt = Writer { wrt: writer };
-        let matches = searcher.search_matches();
+        let found = searcher.search_matches();
 
-        wrt.print_matches(matches, &matcher.config)?;
+        wrt.print_matches(found, &matcher.config)?;
 
         // Return () on success
         Ok(())

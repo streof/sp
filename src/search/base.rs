@@ -1,9 +1,9 @@
-use crate::results::*;
-use crate::searcher::Searcher;
+use crate::results::{check_contains, CountResult, GenResult, SearchInnerResult, Upcast};
+use crate::search::Searcher;
 use bstr::{io::BufReadExt, ByteSlice};
 use std::io::BufRead;
 
-trait Base {
+trait BaseSearch {
     fn no_line_number(&mut self) -> GenResult;
     fn no_line_number_caseless(&mut self) -> GenResult;
     fn line_number(&mut self) -> GenResult;
@@ -12,13 +12,13 @@ trait Base {
     fn cnt_caseless(&mut self) -> GenResult;
 }
 
-pub trait BaseSearch {
+pub trait Base {
     fn get_matches(&mut self) -> GenResult;
 }
 
 // Closures try to borrow `self` as a whole so assign disjoint fields to
 // variables first
-impl<'a, R: BufRead> Base for Searcher<'a, R> {
+impl<'a, R: BufRead> BaseSearch for Searcher<'a, R> {
     fn cnt(&mut self) -> GenResult {
         let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
 
@@ -135,7 +135,7 @@ impl<'a, R: BufRead> Base for Searcher<'a, R> {
     }
 }
 
-impl<'a, R: BufRead> BaseSearch for Searcher<'a, R> {
+impl<'a, R: BufRead> Base for Searcher<'a, R> {
     fn get_matches(&mut self) -> GenResult {
         let (ignore_case, no_line_number, count) = (
             self.matcher.config.ignore_case,
@@ -156,8 +156,9 @@ impl<'a, R: BufRead> BaseSearch for Searcher<'a, R> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{CountResult, Searcher};
     use crate::matcher::MatcherBuilder;
+    use crate::results::{GenInnerResult, LineNumbers, SearchResult};
     use std::io::Cursor;
 
     const LINE: &str = "He started\nmade a run\n& stopped";

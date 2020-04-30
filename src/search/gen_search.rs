@@ -1,12 +1,12 @@
-use crate::results::*;
-use crate::searcher::Searcher;
+use crate::results::{CountResult, GenResult, SearchInnerResult, Upcast};
+use crate::search::Searcher;
 use bstr::{io::BufReadExt, ByteSlice};
 use std::io::BufRead;
 
 // Explicit lifetime annotation is required as it has to match the annotation
 // used when defining the check functions in results (which was in this
 // case omitted and hence inferred)
-pub trait GenCheck {
+pub trait GenSearch {
     fn no_line_number<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(
         &mut self,
         check: F,
@@ -49,7 +49,7 @@ pub trait GenCheck {
     fn cnt<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(&mut self, check: F) -> GenResult;
 }
 
-impl<'a, R: BufRead> GenCheck for Searcher<'a, R> {
+impl<'a, R: BufRead> GenSearch for Searcher<'a, R> {
     fn cnt<F: for<'r, 's> Fn(&'r [u8], &'s str) -> bool>(&mut self, check: F) -> GenResult {
         let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
 

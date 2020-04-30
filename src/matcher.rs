@@ -1,4 +1,4 @@
-/// Internal configuration of our cli which can only by modified by MatcherBuilder.
+/// Internal configuration of our cli which can only by modified by `MatcherBuilder`.
 #[derive(Clone, Debug)]
 pub struct Config {
     pub count: bool,
@@ -24,12 +24,14 @@ impl Default for Config {
     }
 }
 
+#[derive(Debug)]
 pub struct Matcher {
     pub pattern: String,
     pub config: Config,
     pub matcher_type: MatcherType,
 }
 
+#[derive(Debug)]
 pub enum MatcherType {
     Base,
     EndsWith,
@@ -100,7 +102,7 @@ impl<'a> MatcherBuilder {
         self
     }
 
-    /// Build MatcherBuilder
+    /// Build `MatcherBuilder`
     pub fn build(&self, mut pattern: String) -> Matcher {
         if self.config.ignore_case {
             pattern = pattern.to_lowercase();

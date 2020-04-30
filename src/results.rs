@@ -28,8 +28,6 @@ pub enum GenInnerResult {
     Count(CountResult),
 }
 
-pub type SearcherResult = Result<SearchResult, std::io::Error>;
-pub type CounterResult = Result<CountResult, std::io::Error>;
 pub type GenResult = Result<GenInnerResult, std::io::Error>;
 
 #[derive(Debug)]
@@ -61,6 +59,7 @@ impl Default for CountResult {
 }
 
 pub trait Upcast {
+    /// Note that even though this returns a `GenResult`, it cannot fail
     fn upcast(self) -> GenResult;
 }
 
@@ -229,7 +228,7 @@ pub fn check_starts_ends_with(line: &[u8], pattern: &str) -> bool {
         .any(|word| word.starts_with_str(pattern) && word.ends_with_str(pattern))
 }
 
-/// Only used by base and max_count modules
+/// Only used by `base` and `max_count` modules
 pub fn check_contains(line: &[u8], pattern: &str) -> bool {
     line.contains_str(pattern)
 }

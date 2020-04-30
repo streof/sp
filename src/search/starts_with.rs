@@ -1,13 +1,12 @@
-use crate::gen_check::GenCheck;
-use crate::results::{check_ends_with, GenResult};
-use crate::searcher::Searcher;
+use crate::results::{check_starts_with, GenResult};
+use crate::search::{GenSearch, Searcher};
 use std::io::BufRead;
 
-pub trait EndsWithSearch {
+pub trait StartsWith {
     fn get_matches(&mut self) -> GenResult;
 }
 
-impl<'a, R: BufRead> EndsWithSearch for Searcher<'a, R> {
+impl<'a, R: BufRead> StartsWith for Searcher<'a, R> {
     fn get_matches(&mut self) -> GenResult {
         let (ignore_case, max_count, no_line_number, count) = (
             self.matcher.config.ignore_case,
@@ -17,31 +16,33 @@ impl<'a, R: BufRead> EndsWithSearch for Searcher<'a, R> {
         );
 
         match (no_line_number, ignore_case, max_count, count) {
-            (true, true, Some(_), false) => self.no_line_number_caseless_max_count(check_ends_with),
-            (true, true, None, false) => self.no_line_number_caseless(check_ends_with),
-            (true, false, Some(_), false) => self.no_line_number_max_count(check_ends_with),
-            (true, false, None, false) => self.no_line_number(check_ends_with),
-            (false, true, Some(_), false) => self.line_number_caseless_max_count(check_ends_with),
-            (false, true, None, false) => self.line_number_caseless(check_ends_with),
-            (false, false, Some(_), false) => self.line_number_max_count(check_ends_with),
-            (false, false, None, false) => self.line_number(check_ends_with),
-            (_, true, Some(_), true) => self.cnt_caseless_max_count(check_ends_with),
-            (_, true, None, true) => self.cnt_caseless(check_ends_with),
-            (_, false, Some(_), true) => self.cnt_max_count(check_ends_with),
-            (_, false, None, true) => self.cnt(check_ends_with),
+            (true, true, Some(_), false) => {
+                self.no_line_number_caseless_max_count(check_starts_with)
+            }
+            (true, true, None, false) => self.no_line_number_caseless(check_starts_with),
+            (true, false, Some(_), false) => self.no_line_number_max_count(check_starts_with),
+            (true, false, None, false) => self.no_line_number(check_starts_with),
+            (false, true, Some(_), false) => self.line_number_caseless_max_count(check_starts_with),
+            (false, true, None, false) => self.line_number_caseless(check_starts_with),
+            (false, false, Some(_), false) => self.line_number_max_count(check_starts_with),
+            (false, false, None, false) => self.line_number(check_starts_with),
+            (_, true, Some(_), true) => self.cnt_caseless_max_count(check_starts_with),
+            (_, true, None, true) => self.cnt_caseless(check_starts_with),
+            (_, false, Some(_), true) => self.cnt_max_count(check_starts_with),
+            (_, false, None, true) => self.cnt(check_starts_with),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::Searcher;
     use crate::matcher::MatcherBuilder;
     use crate::results::{CountResult, GenInnerResult, LineNumbers, SearchResult};
     use std::io::Cursor;
 
-    const LINE: &str = "againn\ngain\na\x00nd, again\n& AΓain\nGain";
-    const LINE2: &str = "againn\nGain\na\x00nd, aGain\n& AΓain\nGain";
+    const LINE: &str = "again\na\tgain\na\x00nd, gain\n&\u{2003}AΓain\nGain";
+    const LINE2: &str = "again\nGain\na\x00nd, gain\n& AΓain\nGain";
 
     #[test]
     fn line_number() {
@@ -49,10 +50,10 @@ mod tests {
         let pattern = "gain".to_owned();
 
         let matcher = MatcherBuilder::new()
-            .ends_with(true)
             .ignore_case(false)
             .max_count(Some(2))
             .no_line_number(false)
+            .starts_with(true)
             .build(pattern);
 
         let searcher = Searcher {
@@ -64,8 +65,8 @@ mod tests {
         let gir = gen_result.unwrap();
 
         let mut sr = SearchResult::default();
-        sr.matches.push("gain".into());
-        sr.matches.push("a\x00nd, again".into());
+        sr.matches.push("a\tgain".into());
+        sr.matches.push("a\x00nd, gain".into());
         sr.line_numbers = LineNumbers::Some(vec![2, 3]);
 
         assert_eq!(gir, GenInnerResult::Search(sr));
@@ -77,10 +78,10 @@ mod tests {
         let pattern = "aγain".to_owned();
 
         let matcher = MatcherBuilder::new()
-            .ends_with(true)
             .ignore_case(true)
             .max_count(None)
             .no_line_number(false)
+            .starts_with(true)
             .build(pattern);
 
         let searcher = Searcher {
@@ -92,7 +93,7 @@ mod tests {
         let gir = gen_result.unwrap();
 
         let mut sr = SearchResult::default();
-        sr.matches.push("& AΓain".into());
+        sr.matches.push("&\u{2003}AΓain".into());
         sr.line_numbers = LineNumbers::Some(vec![4]);
 
         assert_eq!(gir, GenInnerResult::Search(sr));
@@ -100,13 +101,13 @@ mod tests {
 
     #[test]
     fn no_line_number_caseless() {
-        let mut line = Cursor::new(LINE2.as_bytes());
+        let mut line = Cursor::new(LINE.as_bytes());
         let pattern = "gain".to_owned();
 
         let matcher = MatcherBuilder::new()
-            .ends_with(true)
             .ignore_case(true)
             .no_line_number(true)
+            .starts_with(true)
             .build(pattern);
 
         let searcher = Searcher {
@@ -118,8 +119,8 @@ mod tests {
         let gir = gen_result.unwrap();
 
         let mut sr = SearchResult::default();
-        sr.matches.push("Gain".into());
-        sr.matches.push("a\x00nd, aGain".into());
+        sr.matches.push("a\tgain".into());
+        sr.matches.push("a\x00nd, gain".into());
         sr.matches.push("Gain".into());
 
         assert_eq!(gir, GenInnerResult::Search(sr));
@@ -131,9 +132,9 @@ mod tests {
         let pattern = "gain".to_owned();
 
         let matcher = MatcherBuilder::new()
-            .ends_with(true)
-            .max_count(Some(1))
+            .max_count(Some(2))
             .no_line_number(true)
+            .starts_with(true)
             .build(pattern);
 
         let searcher = Searcher {
@@ -145,7 +146,8 @@ mod tests {
         let gir = gen_result.unwrap();
 
         let mut sr = SearchResult::default();
-        sr.matches.push("gain".into());
+        sr.matches.push("a\tgain".into());
+        sr.matches.push("a\x00nd, gain".into());
 
         assert_eq!(gir, GenInnerResult::Search(sr));
     }
@@ -156,10 +158,10 @@ mod tests {
         let pattern = "gain".to_owned();
 
         let matcher = MatcherBuilder::new()
-            .ends_with(true)
             .ignore_case(true)
             .max_count(Some(2))
             .no_line_number(true)
+            .starts_with(true)
             .build(pattern);
 
         let searcher = Searcher {
@@ -172,20 +174,20 @@ mod tests {
 
         let mut sr = SearchResult::default();
         sr.matches.push("Gain".into());
-        sr.matches.push("a\x00nd, aGain".into());
+        sr.matches.push("a\x00nd, gain".into());
 
         assert_eq!(gir, GenInnerResult::Search(sr));
     }
 
     #[test]
-    fn cnt_max_count() {
+    fn cnt_caseless() {
         let mut line = Cursor::new(LINE.as_bytes());
         let pattern = "gain".to_owned();
 
         let matcher = MatcherBuilder::new()
             .count(true)
-            .ends_with(true)
-            .max_count(Some(3))
+            .ignore_case(true)
+            .starts_with(true)
             .build(pattern);
 
         let searcher = Searcher {
@@ -196,7 +198,7 @@ mod tests {
         let gen_result = searcher.search_matches();
         let gir = gen_result.unwrap();
 
-        let cr = CountResult { count: 2 };
+        let cr = CountResult { count: 3 };
         assert_eq!(gir, GenInnerResult::Count(cr));
     }
 }

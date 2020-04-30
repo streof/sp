@@ -1,18 +1,22 @@
-#![warn(clippy::nursery)]
+#![warn(
+    clippy::nursery,
+    missing_debug_implementations,
+    missing_docs,
+    // unreachable_pub
+)]
 #![forbid(unsafe_code)]
 // #![warn(clippy::pedantic)]
-// #![warn(missing_debug_implementations)]
-// #![warn(missing_docs)]
-pub mod base;
+
+//! This library implements all functionalities provided by `grrs`. It relies
+//! on the following crates:
+//!
+//! * `bstr`: string oriented methods for byte strings: similar to
+//! Unicode strings but *not guaranteed* to be valid UTF-8.
+//! * `anyhow`: convenient and idiomatic error handling
+//! * `structopt`: parsing command line arguments and many additional features
 pub mod cli;
-pub mod ends_with;
-pub mod ext;
-pub mod gen_check;
-pub mod matcher;
-pub mod max_count;
-pub mod results;
-pub mod searcher;
-pub mod starts_ends_with;
-pub mod starts_with;
-pub mod words;
-pub mod writer;
+pub(crate) mod ext;
+pub(crate) mod matcher;
+pub(crate) mod results;
+pub(crate) mod search;
+pub(crate) mod writer;

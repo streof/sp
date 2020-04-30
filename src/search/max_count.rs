@@ -1,9 +1,9 @@
-use crate::results::*;
-use crate::searcher::Searcher;
+use crate::results::{check_contains, CountResult, GenResult, SearchInnerResult, Upcast};
+use crate::search::Searcher;
 use bstr::{io::BufReadExt, ByteSlice};
 use std::io::BufRead;
 
-trait MaxCount {
+trait MaxCountSearch {
     fn no_line_number(&mut self) -> GenResult;
     fn no_line_number_caseless(&mut self) -> GenResult;
     fn line_number(&mut self) -> GenResult;
@@ -12,11 +12,11 @@ trait MaxCount {
     fn cnt_caseless(&mut self) -> GenResult;
 }
 
-pub trait MaxCountSearch {
+pub trait MaxCount {
     fn get_matches(&mut self) -> GenResult;
 }
 
-impl<'a, R: BufRead> MaxCount for Searcher<'a, R> {
+impl<'a, R: BufRead> MaxCountSearch for Searcher<'a, R> {
     fn cnt(&mut self) -> GenResult {
         let (reader, pattern, matches_left) = (
             &mut self.reader,
@@ -191,7 +191,7 @@ impl<'a, R: BufRead> MaxCount for Searcher<'a, R> {
     }
 }
 
-impl<'a, R: BufRead> MaxCountSearch for Searcher<'a, R> {
+impl<'a, R: BufRead> MaxCount for Searcher<'a, R> {
     fn get_matches(&mut self) -> GenResult {
         let (ignore_case, no_line_number, count) = (
             self.matcher.config.ignore_case,
@@ -212,8 +212,9 @@ impl<'a, R: BufRead> MaxCountSearch for Searcher<'a, R> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{CountResult, Searcher};
     use crate::matcher::MatcherBuilder;
+    use crate::results::{GenInnerResult, LineNumbers, SearchResult};
     use std::io::Cursor;
 
     const LINE: &str = "He started\nmade a run\n& stopped";
