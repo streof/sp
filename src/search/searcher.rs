@@ -1,5 +1,6 @@
 use crate::matcher::{Matcher, MatcherType};
 use crate::results::GenResult;
+use crate::search::{Base, EndsWith, MaxCount, StartsEndsWith, StartsWith, Words};
 use std::io::BufRead;
 
 #[derive(Debug)]
@@ -12,30 +13,12 @@ impl<'a, R: BufRead> Searcher<'a, R> {
     pub fn search_matches(mut self) -> GenResult {
         let matcher_type = &self.matcher.matcher_type;
         match matcher_type {
-            MatcherType::Base => {
-                use crate::search::Base;
-                self.get_matches()
-            }
-            MatcherType::EndsWith => {
-                use crate::search::EndsWith;
-                self.get_matches()
-            }
-            MatcherType::MaxCount => {
-                use crate::search::MaxCount;
-                self.get_matches()
-            }
-            MatcherType::StartsWith => {
-                use crate::search::StartsWith;
-                self.get_matches()
-            }
-            MatcherType::StartsEndsWith => {
-                use crate::search::StartsEndsWith;
-                self.get_matches()
-            }
-            MatcherType::Words => {
-                use crate::search::Words;
-                self.get_matches()
-            }
+            MatcherType::Base => Base::get_matches(&mut self),
+            MatcherType::EndsWith => EndsWith::get_matches(&mut self),
+            MatcherType::MaxCount => MaxCount::get_matches(&mut self),
+            MatcherType::StartsWith => StartsWith::get_matches(&mut self),
+            MatcherType::StartsEndsWith => StartsEndsWith::get_matches(&mut self),
+            MatcherType::Words => Words::get_matches(&mut self),
         }
     }
 }
