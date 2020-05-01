@@ -20,7 +20,7 @@ pub trait Base {
 // variables first
 impl<'a, R: BufRead> BaseSearch for Searcher<'a, R> {
     fn cnt(&mut self) -> GenResult {
-        let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
+        let (reader, pattern) = (&mut self.reader, self.matcher.pattern.as_bytes());
 
         let mut cr = CountResult::default();
 
@@ -36,7 +36,7 @@ impl<'a, R: BufRead> BaseSearch for Searcher<'a, R> {
     }
 
     fn cnt_caseless(&mut self) -> GenResult {
-        let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
+        let (reader, pattern) = (&mut self.reader, self.matcher.pattern.as_bytes());
 
         let mut cr = CountResult::default();
 
@@ -56,7 +56,7 @@ impl<'a, R: BufRead> BaseSearch for Searcher<'a, R> {
     }
 
     fn no_line_number(&mut self) -> GenResult {
-        let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
+        let (reader, pattern) = (&mut self.reader, self.matcher.pattern.as_bytes());
 
         let mut sir = SearchInnerResult::default();
 
@@ -69,7 +69,7 @@ impl<'a, R: BufRead> BaseSearch for Searcher<'a, R> {
     }
 
     fn no_line_number_caseless(&mut self) -> GenResult {
-        let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
+        let (reader, pattern) = (&mut self.reader, self.matcher.pattern.as_bytes());
 
         let mut sir = SearchInnerResult::default();
 
@@ -93,7 +93,7 @@ impl<'a, R: BufRead> BaseSearch for Searcher<'a, R> {
     }
 
     fn line_number(&mut self) -> GenResult {
-        let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
+        let (reader, pattern) = (&mut self.reader, self.matcher.pattern.as_bytes());
 
         let mut line_number = 0;
         let mut sir = SearchInnerResult::default();
@@ -108,7 +108,7 @@ impl<'a, R: BufRead> BaseSearch for Searcher<'a, R> {
     }
 
     fn line_number_caseless(&mut self) -> GenResult {
-        let (reader, pattern) = (&mut self.reader, &self.matcher.pattern);
+        let (reader, pattern) = (&mut self.reader, self.matcher.pattern.as_bytes());
 
         let mut line_number = 0;
         let mut sir = SearchInnerResult::default();

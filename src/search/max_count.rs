@@ -20,7 +20,7 @@ impl<'a, R: BufRead> MaxCountSearch for Searcher<'a, R> {
     fn cnt(&mut self) -> GenResult {
         let (reader, pattern, matches_left) = (
             &mut self.reader,
-            &self.matcher.pattern,
+            self.matcher.pattern.as_bytes(),
             self.matcher.config.max_count.unwrap(),
         );
 
@@ -40,7 +40,7 @@ impl<'a, R: BufRead> MaxCountSearch for Searcher<'a, R> {
     fn cnt_caseless(&mut self) -> GenResult {
         let (reader, pattern, matches_left) = (
             &mut self.reader,
-            &self.matcher.pattern,
+            self.matcher.pattern.as_bytes(),
             self.matcher.config.max_count.unwrap(),
         );
 
@@ -65,7 +65,7 @@ impl<'a, R: BufRead> MaxCountSearch for Searcher<'a, R> {
     fn no_line_number(&mut self) -> GenResult {
         let (reader, pattern, mut matches_left) = (
             &mut self.reader,
-            &self.matcher.pattern,
+            self.matcher.pattern.as_bytes(),
             self.matcher.config.max_count.unwrap(),
         );
 
@@ -85,7 +85,7 @@ impl<'a, R: BufRead> MaxCountSearch for Searcher<'a, R> {
     fn no_line_number_caseless(&mut self) -> GenResult {
         let (reader, pattern, mut matches_left) = (
             &mut self.reader,
-            &self.matcher.pattern,
+            self.matcher.pattern.as_bytes(),
             self.matcher.config.max_count.unwrap(),
         );
 
@@ -123,7 +123,7 @@ impl<'a, R: BufRead> MaxCountSearch for Searcher<'a, R> {
     fn line_number(&mut self) -> GenResult {
         let (reader, pattern, mut matches_left) = (
             &mut self.reader,
-            &self.matcher.pattern,
+            self.matcher.pattern.as_bytes(),
             self.matcher.config.max_count.unwrap(),
         );
 
@@ -151,7 +151,7 @@ impl<'a, R: BufRead> MaxCountSearch for Searcher<'a, R> {
     fn line_number_caseless(&mut self) -> GenResult {
         let (reader, pattern, mut matches_left) = (
             &mut self.reader,
-            &self.matcher.pattern,
+            self.matcher.pattern.as_bytes(),
             self.matcher.config.max_count.unwrap(),
         );
 
