@@ -1,7 +1,11 @@
 # sp
 
-grrs is a basic implementation of grep/ripgrep. It can be used to find patterns/words
-in files. 
+sp (*S*earch and *P*rint) is a basic implementation of grep/ripgrep. It can be
+used to find patterns/words in files.
+
+The main idea behind sp was to create a cli that in terms of features lies somewhere
+between simply matching a substring and a regex search. In its current state, sp can
+be best seen as a limited extension of a substring search.
 
 ## Options
 
@@ -10,7 +14,7 @@ USAGE:
     sp [OPTIONS] <PATTERN> <PATH>
 
 ARGS:
-    <PATTERN>    A pattern used for matching a sub-slice
+    <PATTERN>    A pattern used for matching
     <PATH>       A file to search
 
 OPTIONS:
@@ -25,6 +29,7 @@ OPTIONS:
     -w, --words              Whole words search (i.e. non-word characters are stripped)
 ```
 
+*Fields* are strings separated by contiguous whitespace (as defined by Unicode)
 
 ## Building
 
