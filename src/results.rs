@@ -8,19 +8,16 @@ pub enum LineNumbers {
     Some(Vec<u64>),
 }
 
-#[derive(Debug, PartialEq)]
+impl Default for LineNumbers {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+#[derive(Debug, Default, PartialEq)]
 pub struct SearchResult {
     pub matches: Vec<BString>,
     pub line_numbers: LineNumbers,
-}
-
-impl Default for SearchResult {
-    fn default() -> Self {
-        Self {
-            matches: Default::default(),
-            line_numbers: LineNumbers::None,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -31,32 +28,15 @@ pub enum GenInnerResult {
 
 pub type GenResult = Result<GenInnerResult, std::io::Error>;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SearchInnerResult {
     pub matches: Vec<BString>,
     pub line_numbers: Vec<u64>,
 }
 
-impl Default for SearchInnerResult {
-    fn default() -> Self {
-        Self {
-            matches: Default::default(),
-            line_numbers: Default::default(),
-        }
-    }
-}
-
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Default, PartialEq)]
 pub struct CountResult {
     pub count: u64,
-}
-
-impl Default for CountResult {
-    fn default() -> Self {
-        Self {
-            count: Default::default(),
-        }
-    }
 }
 
 pub trait Upcast {
