@@ -1,13 +1,13 @@
-# grrs
+# sp
 
 grrs is a basic implementation of grep/ripgrep. It can be used to find patterns/words
 in files. 
 
-## Options 
+## Options
 
 ```
 USAGE:
-    grrs [OPTIONS] <PATTERN> <PATH>
+    sp [OPTIONS] <PATTERN> <PATH>
 
 ARGS:
     <PATTERN>    A pattern used for matching a sub-slice
@@ -34,16 +34,16 @@ is running on your machine.
 To build this project:
 
 ```
-$ git clone https://github.com/streof/grrs
-$ cd grrs
+$ git clone https://github.com/streof/sp
+$ cd sp
 $ cargo build --release
-$ ./target/release/grrs --version
-grrs 0.1.2
+$ ./target/release/sp --version
+sp 0.1.2
 ```
 
 ## Running tests
 
-grrs includes unit and integration tests. Run them as follows:
+sp includes unit and integration tests. Run them as follows:
 
 ```
 $ cargo test
@@ -54,7 +54,7 @@ $ cargo test
 Tha main goal of this project was to reimplement a small number of grep/ripgrep
 alike features. Performance was not a strict requirement althought, in my
 opinion, cli's should at least be perceived as fast by their users. Performance
-is obviously a trade-off and for grrs depends on things like:
+is obviously a trade-off and for sp depends on things like:
 
 - memory allocation
 - cpu utilization
@@ -69,7 +69,7 @@ standard library provides for example the very convenient [`lines`](https://doc.
 project used `read_line` but then I read this [reddit thread](https://www.reddit.com/r/rust/comments/cqpswx/processing_data_line_by_line_from_stdin_rust/) where [linereader](https://github.com/Freaky/rust-linereader)
 was mentioned. I ended up using [bstr](https://github.com/BurntSushi/bstr) which
 offers a good balance between rich, ergonomic API and performance (see this [commit](https://github.com/BurntSushi/bstr/commit/66dee497c8da16f397c1d0952e58dadf04b66b5c)).
-- Counts in grrs rely on a very naive implementation that does not take any
+- Counts in sp rely on a very naive implementation that does not take any
 advantage of modern CPU capabilities (see for example [bytecount](https://github.com/llogiq/bytecount))
 - The current matching algorithm relies on high level API's exposed by `bstr`.
 However, I also performed some simple benchmarks which suggested that switching
@@ -77,7 +77,7 @@ to [`twoway`](https://github.com/bluss/twoway) will give a significant performan
 boost (>2x speedup). Rust uses the twoway algorithm for things like pattern
 matching, althought the implementation differs from the one provided by the twoway
 crate.
-- In some cases the number of read syscalls used by grrs is significantly higher
+- In some cases the number of read syscalls used by sp is significantly higher
 than when using ripgrep.
 - Ripgrep uses [`encoding_rs`](https://github.com/hsivonen/encoding_rs) for fast
 encoding/decoding.

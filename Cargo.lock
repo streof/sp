@@ -143,18 +143,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "grrs"
-version = "0.1.2"
-dependencies = [
- "anyhow",
- "assert_cmd",
- "bstr",
- "predicates",
- "structopt",
- "tempfile",
-]
-
-[[package]]
 name = "heck"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -417,6 +405,18 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "sp"
+version = "0.1.2"
+dependencies = [
+ "anyhow",
+ "assert_cmd",
+ "bstr",
+ "predicates",
+ "structopt",
+ "tempfile",
 ]
 
 [[package]]

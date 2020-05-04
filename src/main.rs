@@ -1,5 +1,5 @@
 use anyhow::Context;
-use grrs::cli::{Input, Output};
+use sp::cli::{Input, Output};
 use std::fs::File;
 use std::io::{self, BufReader};
 use structopt::StructOpt;

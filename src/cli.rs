@@ -8,10 +8,10 @@ use std::path::PathBuf;
 use structopt::{StructOpt, clap::AppSettings};
 
 const ABOUT: &str = "
-grrs is a very basic implementation of grep. Use -h for more information.";
+sp is a very basic implementation of grep. Use -h for more information.";
 
 const USAGE: &str = "
-    grrs [OPTIONS] <PATTERN> <PATH>";
+    sp [OPTIONS] <PATTERN> <PATH>";
 
 const TEMPLATE: &str = "\
 {bin} {version}

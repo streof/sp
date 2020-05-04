@@ -1,5 +1,5 @@
 [package]
-name = "grrs"
+name = "sp"
 version = "0.1.2"
 authors = ["streof"]
 edition = "2018"

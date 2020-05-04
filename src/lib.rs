@@ -7,7 +7,7 @@
 #![forbid(unsafe_code)]
 // #![warn(clippy::pedantic)]
 
-//! This library implements all functionalities provided by `grrs`. It relies
+//! This library implements all functionalities provided by `sp`. It relies
 //! on the following crates:
 //!
 //! * `bstr`: string oriented methods for byte strings: similar to
